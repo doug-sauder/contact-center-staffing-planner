@@ -1,0 +1,75 @@
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local notes and untracked documents
+local
+
+# --- Coding agents ---
+.claude
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.ipynb_checkpoints/
+
+# --- Node / React / TypeScript ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.next/
+.nuxt/
+.cache/
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Local scratch / temp ---
+*.tmp
+*.bak
+tmp/
