@@ -89,14 +89,20 @@ produced it. New abstractions, dependencies, or configuration options MUST be ju
 concrete, current requirement — not a hypothetical future one (YAGNI). Prefer the simplest
 design that satisfies the current spec; added complexity MUST be called out and justified in
 the plan's Complexity Tracking section.
+
 **Rationale**: Staffing recommendations must be explainable to operations stakeholders, and
 unexplained complexity makes both debugging and onboarding new contributors disproportionately
 slow relative to the value it adds.
 
 ## Quality Gates
 
-All pull requests MUST pass: automated tests (unit and integration), linting/static analysis,
-and a code review by at least one other contributor before merge. Any exception to a gate
+All pull requests MUST pass:
+
+ - automated tests (unit and integration)
+ - linting/static analysis
+ - code review by at least one other contributor before merge.
+
+Any exception to a gate
 (e.g., merging with a known failing non-blocking test) MUST be explicitly approved by the
 reviewer and recorded in the PR description with a rationale and follow-up plan.
 
@@ -118,4 +124,4 @@ new principles or materially expanded guidance, PATCH for clarifications and wor
 All PRs and reviews MUST verify compliance with this constitution; unjustified complexity
 MUST be flagged in review and either justified or removed before merge.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-15
+**Version**: 2.0.1 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-09-23
