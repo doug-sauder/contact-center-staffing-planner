@@ -11,28 +11,6 @@ behavior is correct.
 The model is abstract. It describes the contact center as the simulation sees it, not
 how the simulator is built.
 
-<!--
-
-This document describes the domain model for a discrete-event simulation of a contact
-center. In this context, a “domain model” is a model of shared understanding of a unified *domain*, which
-  combines elements from three constituent domains: contact center
-  operations, simulation software design, and queueing theory.
-
-Can we state more clearly the *purpose*? Here are some of my thoughts:
-
-- Creating the simulation requires a collaboration between experts in three different domains: contact center
-  operations, simulation software design, and queueing theory.
-- This document attempts to convey a shared understanding of a unified *domain*, which
-  combines elements from the three constituent domains.
-- Provides information necessary for implementors, specifically: technical-oriented
-  persons who have the necessary knowledge to create the software product.
-- The document does not try to cover every aspect of contact center operations; it is limited to those
-  aspects that are needed to create a simulator with limited scope.
-- The initial scope is intentionally limited to reduce the simulation complexity.
-  More specifically, the initial scope is limited to what is needed for a “minimum viable product” (MVP).
-
--->
-
 ### 1.1. In Scope
 
 - **Inbound Voice Calls** - This model covers only inbound voice calls.
@@ -46,7 +24,8 @@ Can we state more clearly the *purpose*? Here are some of my thoughts:
 - **Parameters** - The inputs that make up a Scenario: the time frame, Call Volume,
   probability distributions, Queue settings, and Agent schedules.
 - **Metrics** - The outputs the simulation reports, and what each one means.
-- **Assumptions** - Simplifications the model makes, and the boundaries of the MVP.
+- **Assumptions** - Simplifications the model makes, and the boundaries of the MVP
+  (minimum viable product).
 
 ### 1.2. Out of Scope
 
@@ -76,9 +55,9 @@ the simulated contact center does, or what a metric means?*
   belongs in the design. Examples: how an unbounded queue capacity is encoded; how the
   Agent-Queue membership is kept consistent in memory.
 
-Relationships are described from the point of view of each entity involved. For
-example, an Agent has the Queues it has joined, and a Queue has the Agents that have
-joined it. Both describe the same relationship.
+Relationships are described from the point of view of each entity involved. For example,
+an Agent knows the Queues he has joined, and a Queue knows the Agents that have joined
+it. Both describe the same relationship.
 
 ## 2. Terminology
 
@@ -87,13 +66,6 @@ identifying these terms, we can use them consistently, not only in this domain d
 but also in other documents and in code. This section provides short definitions and
 serves as a quick reference. Other sections provide more complete descriptions of the
 terms.
-
-[DS] I annotated some sentences as “Notes” in parenthesis. That’s because these
-sentences are explanatory and not essential to the definition. As such, they might be
-better located elsewhere in the document. Furthermore, some of these notes provide
-information that could be changed in a later revision of the document. Because they are
-annotated, we could search for them from time to time to check that they are still
-valid.
 
 ### 2.1. Contact Center Domain Terms
 
@@ -145,9 +117,8 @@ Concepts:
 
 Metrics:
 
-- **Call Volume** - The number of Calls the Contact Center receives in an Interval. As
-  an input, it is expressed as an arrival rate (Section 6). ([DS] Check the previous
-  sentence.) As an output, it is the observed count.
+- **Call Volume** - The number of Calls the Contact Center receives in an Interval. (see
+  6.2).
 - **AHT (Average Handle Time)** - The mean Handle Time of the answered Calls that
   belong to an Interval.
 - **ASA (Average Speed of Answer)** - The mean Wait Time of the answered Calls that
@@ -155,7 +126,8 @@ Metrics:
 - **Service Level (SL)** - The percentage of Calls answered within the *Service Level
   Threshold*, a duration such as 20 seconds. Which Calls are counted, and how Abandoned
   and Blocked Calls are treated, is defined in 7.2. A goal such as “80% within 20
-  seconds” is a Service Level Target, not the metric itself (see Section 8).
+  seconds” is a Service Level Target. A target is compared with the metric; it is not
+  the metric itself, and it is not part of the Scenario (see 6.7).
 - **Abandonment Rate** - The fraction of non-Blocked Calls that end *Abandoned*.
 - **Block Rate** - The fraction of received Calls that end *Blocked*.
 - **Queue Length** - The number of Calls waiting in a Queue at a given moment. Per
@@ -175,11 +147,8 @@ Metrics:
 
 ### 2.2. Queueing Theory Terms (reference only)
 
-[DS] This section needs to be better focused. It contains a lot of explanations that are
-relevant to the document, but which do not fit well into this section.
-
-This section covers terms from queueing theory, a mathematical discipline that studies
-the behavior of queueing models. The terms defined here relate to the well-known
+This section covers concepts from queueing theory, a mathematical discipline that
+studies the behavior of queueing models. The terms defined here relate to the well-known
 mathematical formulas that describe the behavior of specific queueing models.
 
 The simulator does not use these formulas. However, they are useful for validation:
@@ -188,7 +157,7 @@ predictions. For example, with Poisson arrivals, an unbounded Queue, no abandonm
 zero Alert Time, zero Wrap-up Time, and exponential Talk Time, simulated results should
 match Erlang C. Erlang A additionally requires exponential Caller *patience*. Because
 the formulas describe steady state, the comparison uses the middle Intervals of a long
-run (see Section 9, Validation runs).
+run (see Section 8, Validation runs).
 
 Zero Alert Time and zero Wrap-up Time are needed for an exact match for two reasons.
 First, the formulas assume an exponential Service Time, and a sum of Alert Time, Talk
@@ -243,14 +212,12 @@ runs until the *answerTimestamp*; the two agree only when Alert Time is zero.
 - **Simulation Time** - The model’s clock: the timeline on which all timestamps, such
   as *arrivalTimestamp*, are recorded. It is not wall-clock time. Simulation Time is
   neither a duration nor a timestamp, so it is an exception to the naming rule in 2.4.
-- **Scenario** - A complete set of input parameter values that define a Replication.
-  Also called a *design point* or *configuration*. ([DS] The preceding sentence is a
-  little misleading if we never use those alternate terms in any of our documents. If
-  the alternate terms are used elsewhere in the simulation domain, we should say that
-  that’s the case.) “Complete” means the model has no hidden defaults: everything that
+- **Scenario** - A complete set of Parameter values that apply to each Replication in an Ensemble.
+   “Complete” means the model has no hidden defaults: everything that
   affects what the simulated contact center does is set in the Scenario. Two
-  Replications of the same Scenario differ only in their random values. The Scenario’s
+  Replications of the same Scenario differ only in their random values. The Scenario’s Parameter
   values are listed in Section 6.
+  Note: In design of experiments this is called a *design point*; elsewhere it is often called a *configuration*. This document uses only Scenario.
 - **Parameter** - A value set by the Scenario. A value belongs in the Scenario if it can
   differ between Scenarios and changes what happens in a Replication. A rule the model
   fixes, such as FIFO Call selection (5.3.1), is not a parameter: it cannot vary, so it
@@ -264,9 +231,103 @@ runs until the *answerTimestamp*; the two agree only when Alert Time is zero.
   inputs are random, each Replication produces different results. Metrics are
   computed for each Replication and then summarized across Replications; Calls are
   not pooled across Replications.
-- **Experiment** - A set of Scenarios run together for comparison. For example, 38 to 46
-  Agents in steps of 2. This is the sense used in design of experiments. Note: How
-  randomness is shared across Scenarios is a design concern (see 1.2).
+- **Ensemble** - A set of Replications of one Scenario, each with a different random
+  seed. An Ensemble is the unit over which per-Replication metrics are summarized (mean,
+  standard deviation, confidence interval; see 7.3). The term is borrowed from weather
+  and climate modeling, where it means the same: runs of one configuration that differ
+  only in their random values.
+- **Experiment** - A set of Ensembles, one per Scenario, run together for comparison.
+  For example, 38 to 46 Agents in steps of 2. This is the sense used in design of
+  experiments. Note: How randomness is shared across Scenarios is a design concern (see
+  1.2).
+- **Event History** - The record of one Replication: every Event that occurred, its
+  timestamp, and the Entities it involved. The simulation produces it from a Scenario
+  and the execution settings (6.7), and it is the simulation’s only output. Every Metric
+  is computed from the Event History and the Scenario, and nothing else (Section 7).
+- **Replication Metrics** - The values of the Metrics (2.1) for one Replication,
+  computed from its Event History, the Scenario, and the measurement settings (6.7).
+  They are specified in Section 7.
+- **Ensemble Metrics** - The statistics over the Replication Metrics of one Ensemble:
+  for each Metric, the mean, standard deviation, and confidence interval (7.3). They
+  describe a Metric across Replications; they are not new Metrics.
+
+“Run” is used only as a verb for the execution terms above: a Replication, an Ensemble,
+or an Experiment is run. A Scenario is configuration and is not run.
+
+#### 2.3.1. Relationships
+
+The diagram shows how the simulation terms relate. An Experiment reaches its Scenarios
+and Replications only through its Ensembles.
+
+```mermaid
+classDiagram
+    direction LR
+    Scenario "1" *-- "1..*" Parameter : contains
+    Scenario "1" <-- "0..*" Ensemble : uses
+    Experiment "0..1" o-- "1..*" Ensemble : is a run of
+    Ensemble "1" *-- "1..*" Replication : is a run of
+    Replication "1" *-- "1" EventHistory : records
+    Replication "1" *-- "1" ReplicationMetrics : yields
+    Ensemble "1" *-- "1" EnsembleMetrics : summarizes to
+
+    class Scenario {
+        id
+    }
+    class Ensemble {
+        replicationCount
+        baseSeed
+    }
+    class Replication {
+        index
+        seed
+    }
+```
+
+- A Scenario is identified by an *id*, which may carry a version when Scenarios are kept
+  under version control. Many Ensembles can use the same Scenario; each Ensemble has
+  exactly one.
+- An Ensemble may be run on its own, outside any Experiment. An Experiment has one or
+  more Ensembles, each with its own Scenario.
+- A Replication belongs to exactly one Ensemble and is identified by its index within
+  it. Each Replication has its own Event History and Replication Metrics. An Ensemble
+  has one set of Ensemble Metrics, summarized from its Replications’ values. The
+  processing that produces them is in 2.3.2.
+
+#### 2.3.2. Processing
+
+The simulation takes a Scenario and the execution settings, and produces an Event
+History for each Replication. Two later steps turn the Event History into Metrics.
+Measurement settings enter only at the second step, so changing one, such as the Service
+Level Threshold, means repeating only the later steps, not the simulation (6.7).
+
+```mermaid
+flowchart LR
+    Scenario[Scenario]
+    Exec[Execution settings]
+    Meas[Measurement settings]
+    Sim([Simulation])
+    EH[Event History<br/>per Replication]
+    Calc([Metric calculation])
+    RM[Replication Metrics]
+    Summ([Summarization])
+    EM[Ensemble Metrics]
+
+    Scenario --> Sim
+    Exec --> Sim
+    Sim --> EH
+    EH --> Calc
+    Scenario --> Calc
+    Meas --> Calc
+    Calc --> RM
+    RM --> Summ
+    Summ --> EM
+```
+
+- The rounded boxes are processing steps and the rectangles are data. The steps are
+  part of the model; how they are packaged into components is a design concern (see
+  1.2).
+- Because the Event History is kept, a user can define a new Metric afterward and
+  compute it without running the simulation again (Section 7).
 
 ### 2.4. Conventions
 
@@ -274,7 +335,7 @@ When a term (word or phrase) refers to a concept defined in this model, the term
 capitalized. For example, a “Queue” is an object that is explicitly defined by the
 model, whereas a “queue” is to be understood in a general sense.
 
-The table summarizes how each kind of name is written.
+The table below describes the other conventions used in this document.
 
 | Kind | Notation | Examples |
 |---|---|---|
@@ -283,7 +344,7 @@ The table summarizes how each kind of name is written.
 | Attribute or Scenario parameter | camelCase, lowercase first letter, italic | *activityState*, *arrivalTimestamp*, *patience* |
 | Qualified attribute | Entity name, a period, then the attribute | Call.*state*, Agent.*activityState* |
 | State or *disposition* value | Capitalized, italic, spaces allowed | *Alerting*, *Not Ready*, *Logged In*, *Abandoned* |
-| Event | Capitalized, with spaces, regular face, in the form Actor Verb-ed Object | Agent Answered Call, CC Blocked Call |
+| Event | Capitalized, with spaces, regular face, in the form Actor (past tense) Verb Object | Agent Answered Call, CC Blocked Call |
 | Duration | Defined term ending in *Time* | Talk Time, Handle Time |
 | Timestamp | Attribute name ending in *Timestamp* | *answerTimestamp*, *wrapUpEndTimestamp* |
 
@@ -294,8 +355,7 @@ Notes on the table:
   maps to its field name mechanically, such as *activityState* to a field named
   activityState or activity_state, is encouraged.
 - An Entity’s attribute and a Scenario parameter that sets it share one name. For
-  example, a Queue’s *capacity* is both. Section 3 treats the name as an Attribute and
-  Section 6 as a parameter (see Parameter in 2.3).
+  example, a Queue’s *capacity* is both a Queue attribute and a Scenario parameter.
 - A plural attribute name, such as *queues*, *calls*, or *agents*, holds a collection.
   A singular name that matches an Entity, such as *caller*, *queue*, or *agent* on a
   Call, refers to one Entity of that kind.
@@ -329,7 +389,7 @@ Every Entity is distinguishable, so that results can be grouped and joined. Agen
 the Queue are identified by the Scenario. A Replication is identified by its Scenario
 and its index. A Call is identified by its arrival sequence number within a
 Replication. A Call has no identity across Replications, because arrivals are sampled
-independently in each; results are joined on Scenario and Replication index.
+independently in each; results are joined on Scenario, Replication, and Ensemble index.
 
 ### 3.1. Actors
 
@@ -399,8 +459,8 @@ An Agent handles Calls. To handle a Call, an Agent answers the Call and remains 
 Call until the Caller releases it. After the Caller releases the Call, the Agent
 completes Wrap-up before becoming available to handle another Call.
 
-An Agent *joins* a Queue, which means the Agent can handle Calls received for that Queue. An
-Agent can join multiple Queues. An Agent can *leave* (unjoin) a Queue.
+An Agent may *join* a Queue, which means the Agent can handle Calls received for that Queue. An
+Agent may join multiple Queues. An Agent may *leave* (unjoin) a Queue.
 
 An Agent has state and attributes.
 
@@ -456,7 +516,7 @@ Activity State:
   attribute to “true”. After the Agent completes Wrap-up, his state changes to *Not
   Ready* instead of *Ready*.
 - When an Agent’s shift ends (Agent Ended Shift), *logoutPending* is set. The Agent
-  leaves all Queues and logs out as soon as the Staffing Policy releases them (5.3.2).
+  leaves all Queues and logs out as soon as the Staffing Policy releases him (5.3.2).
   That is normally at once, or at the end of Wrap-up if the Agent is *Alerting*,
   *Busy*, or in *Wrap-up*, so the Agent can work past the end of the shift. An Agent
   whose shift ends at closing stays joined, even on a break, while Calls are still
@@ -753,16 +813,10 @@ Remarks:
   them (5.3.2). Agent Left Queue takes effect immediately in any
   *activityState*; it stops new Calls from that Queue but does not affect a Call the
   Agent is already handling (see 3.1.3).
-
 - **Call leaves the Queue on routing.** When a Call is routed, it is removed from the
   Queue’s *calls* and does not remain in the Queue while *Alerting* (see 3.2.2).
 
 ## 5. Behaviors / Transition Rules
-
-- State diagram or transition table combining events into full system
-  behavior
-- Handling of Queue capacity
-- Handling of abandonment
 
 ### 5.1. Agent State Transitions
 
@@ -803,40 +857,40 @@ Session State Transitions:
 
 | Current State | Event | Condition(s) | Next State |
 |---|---|---|---|
-| Logged Out | Agent Logged In | | Logged In |
-| Logged In | Agent Logged Out | *activityState* is Inactive; *logoutPending* is “true” | Logged Out |
+| *Logged Out* | Agent Logged In | | *Logged In* |
+| *Logged In* | Agent Logged Out | *activityState* is *Inactive*; *logoutPending* is “true” | *Logged Out* |
 
 Activity State Transitions (apply only while *sessionState* is *Logged In*):
 
 | Current State | Event | Condition(s) | Actions | Next State |
 |---|---|---|---|---|
-| — (entering *Logged In*) | Agent Logged In | | | Inactive |
-| Inactive | Agent Joined Queue | | Add Agent to Queue’s *agents* / Add Queue to Agent’s *queues* | Ready |
-| Ready | CC Routed Call | | | Alerting |
-| Alerting | Agent Requested Not Ready | | Set *notReadyPending* to “true” | Alerting |
-| Alerting | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Alerting |
-| Alerting | Agent Answered Call | | | Busy |
-| Busy | Agent Requested Not Ready | | Set *notReadyPending* to “true” | Busy |
-| Busy | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Busy |
-| Busy | Caller Released Call | | | Wrap-up |
-| Wrap-up | Agent Requested Not Ready | | Set *notReadyPending* to “true” | Wrap-up |
-| Wrap-up | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Wrap-up |
-| Wrap-up | Agent Completed Wrap-Up | *queues* is empty | Set *notReadyPending* to “false” | Inactive |
-| Wrap-up | Agent Completed Wrap-Up | *queues* is not empty; *notReadyPending* is “false” | | Ready |
-| Wrap-up | Agent Completed Wrap-Up | *queues* is not empty; *notReadyPending* is “true” | Set *notReadyPending* to “false” | Not Ready |
-| Ready | Agent Became Not Ready | | | Not Ready |
-| Not Ready | Agent Became Ready | | | Ready |
-| Ready | Agent Left Queue | last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Inactive |
-| Ready | Agent Left Queue | not last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Ready |
-| Not Ready | Agent Left Queue | last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Inactive |
-| Not Ready | Agent Left Queue | not last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Not Ready |
-| Inactive | Agent Logged Out | *logoutPending* is “true” | | — (leaving *Logged In*) |
-| Ready | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | Ready |
-| Not Ready | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | Not Ready |
-| Alerting | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | Alerting |
-| Busy | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | Busy |
-| Wrap-up | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | Wrap-up |
-| Ready | Agent Left Queue | *logoutPending* is “true”; release rule met (5.3.2) | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | Inactive |
+| — (entering *Logged In*) | Agent Logged In | | | *Inactive* |
+| *Inactive* | Agent Joined Queue | | Add Agent to Queue’s *agents* / Add Queue to Agent’s *queues* | *Ready* |
+| *Ready* | CC Routed Call | | | *Alerting* |
+| *Alerting* | Agent Requested Not Ready | | Set *notReadyPending* to “true” | *Alerting* |
+| *Alerting* | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Alerting* |
+| *Alerting* | Agent Answered Call | | | *Busy* |
+| *Busy* | Agent Requested Not Ready | | Set *notReadyPending* to “true” | *Busy* |
+| *Busy* | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Busy* |
+| *Busy* | Caller Released Call | | | *Wrap-up* |
+| *Wrap-up* | Agent Requested Not Ready | | Set *notReadyPending* to “true” | *Wrap-up* |
+| *Wrap-up* | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Wrap-up* |
+| *Wrap-up* | Agent Completed Wrap-Up | *queues* is empty | Set *notReadyPending* to “false” | *Inactive* |
+| *Wrap-up* | Agent Completed Wrap-Up | *queues* is not empty; *notReadyPending* is “false” | | *Ready* |
+| *Wrap-up* | Agent Completed Wrap-Up | *queues* is not empty; *notReadyPending* is “true” | Set *notReadyPending* to “false” | *Not Ready* |
+| *Ready* | Agent Became Not Ready | | | *Not Ready* |
+| *Not Ready* | Agent Became Ready | | | *Ready* |
+| *Ready* | Agent Left Queue | last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Inactive* |
+| *Ready* | Agent Left Queue | not last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Ready* |
+| *Not Ready* | Agent Left Queue | last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Inactive* |
+| *Not Ready* | Agent Left Queue | not last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Not Ready* |
+| *Inactive* | Agent Logged Out | *logoutPending* is “true” | | — (leaving *Logged In*) |
+| *Ready* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Ready* |
+| *Not Ready* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Not Ready* |
+| *Alerting* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Alerting* |
+| *Busy* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Busy* |
+| *Wrap-up* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Wrap-up* |
+| *Ready* | Agent Left Queue | *logoutPending* is “true”; release rule met (5.3.2) | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Inactive* |
 
 **Notes**:
 
@@ -852,7 +906,7 @@ Activity State Transitions (apply only while *sessionState* is *Logged In*):
   *Busy*, or in *Wrap-up* goes to *Inactive* at the end of Wrap-up, because no Queues
   remain, and then logs out. The exception is an Agent whose shift ends at closing, who
   stays joined until the Queue is empty, and who finishes any break in progress (Not
-  Ready → Inactive happens when the Queue empties, or the Agent goes to *Ready* at the
+  *Ready* → *Inactive* happens when the Queue empties, or the Agent goes to *Ready* at the
   end of the break if Calls are waiting). The table lists the Agent Ended Shift rows; the diagram
   omits them.
 - The Agent can log out only from *Inactive*. In the diagram, Agent Logged Out moves the
@@ -886,22 +940,22 @@ Call State Transitions:
 
 | Current State | Event | Condition(s) | Actions | Next State |
 |---|---|---|---|---|
-| — (new Call) | CC Received Call | | Set *arrivalTimestamp* / Set *queue* to the destination Queue | Initial |
-| Initial | CC Routed Call | an available Agent has joined the Call’s *queue* | Set *agent* / Set *alertTimestamp* | Alerting |
-| Initial | CC Queued Call | no available Agent; Queue is not full | Add Call to Queue’s *calls* / Set Caller’s *patience* | Queued |
-| Initial | CC Blocked Call | no available Agent; Queue is full | | Blocked |
-| Queued | CC Routed Call | | Remove Call from Queue’s *calls* / Set *agent* / Set *alertTimestamp* | Alerting |
-| Queued | Caller Released Call | | Remove Call from Queue’s *calls* / Set *releaseTimestamp* / Set *disposition* to Abandoned | Released |
-| Alerting | Agent Answered Call | | Set *answerTimestamp* | Connected |
-| Connected | Caller Released Call | | Set *releaseTimestamp* / Set *disposition* to Completed | Released |
-| Blocked | Caller Released Call | | Set *releaseTimestamp* / Set *disposition* to Blocked | Released |
-| Released | Agent Completed Wrap-Up | *disposition* is Completed | Set *wrapUpEndTimestamp* | Released |
+| — (new Call) | CC Received Call | | Set *arrivalTimestamp* / Set *queue* to the destination Queue | *Initial* |
+| *Initial* | CC Routed Call | an available Agent has joined the Call’s *queue* | Set *agent* / Set *alertTimestamp* | *Alerting* |
+| *Initial* | CC Queued Call | no available Agent; Queue is not full | Add Call to Queue’s *calls* / Set Caller’s *patience* | *Queued* |
+| *Initial* | CC Blocked Call | no available Agent; Queue is full | | *Blocked* |
+| *Queued* | CC Routed Call | | Remove Call from Queue’s *calls* / Set *agent* / Set *alertTimestamp* | *Alerting* |
+| *Queued* | Caller Released Call | | Remove Call from Queue’s *calls* / Set *releaseTimestamp* / Set *disposition* to *Abandoned* | *Released* |
+| *Alerting* | Agent Answered Call | | Set *answerTimestamp* | *Connected* |
+| *Connected* | Caller Released Call | | Set *releaseTimestamp* / Set *disposition* to *Completed* | *Released* |
+| *Blocked* | Caller Released Call | | Set *releaseTimestamp* / Set *disposition* to *Blocked* | *Released* |
+| *Released* | Agent Completed Wrap-Up | *disposition* is *Completed* | Set *wrapUpEndTimestamp* | *Released* |
 
 **Notes**:
 
 - The Call’s *disposition* is set by the path into the final state. Released from
-  *Queued* is Abandoned, from *Connected* is Completed, and from *Blocked* is
-  Blocked. The table sets it on entering *Released*, so every Call that has ended has
+  *Queued* is *Abandoned*, from *Connected* is *Completed*, and from *Blocked* is
+  *Blocked*. The table sets it on entering *Released*, so every Call that has ended has
   exactly one *disposition*, and a Call that has not ended has none.
 - The table lists only Events that change the Call’s *state* or its record. What each
   Event does to the Agent is in 5.1; Agent Answered Call, Caller Released Call, and
@@ -919,7 +973,7 @@ Call State Transitions:
   so a Blocked Call’s *releaseTimestamp* equals its *arrivalTimestamp*. A real Contact
   Center may play an announcement before disconnecting, but that time does not matter
   here. A Blocked Call does not occupy the Queue or an Agent, and every metric counts it
-  by its *arrivalTimestamp*, so a non-zero time would change no result (see Section 9).
+  by its *arrivalTimestamp*, so a non-zero time would change no result (see Section 8).
 - *Initial* lasts zero time, because the model assumes the Contact Center processes
   new Calls instantly (see *arrivalTimestamp* in 3.2.1).
 - There is no *Alerting* → *Released* transition, because a Caller cannot release an
@@ -1040,10 +1094,10 @@ Logged Out is the Agent’s overtime, and it counts as logged-in time for Utiliz
   a Scenario parameter. A client, such as the staffing planner, converts a count into
   Agent schedules before it submits the Scenario (see 1.2).
 - Breaks are fixed in the Scenario in the MVP. Adjusting them during a Replication is
-  deferred (Section 9). A later version could distinguish mandatory breaks from
+  deferred (Section 8). A later version could distinguish mandatory breaks from
   discretionary ones.
 - An Agent whose shift ends before closing leaves even if Calls are waiting. The
-  Scenario is responsible for scheduling enough Agents (see Section 9).
+  Scenario is responsible for scheduling enough Agents (see Section 8).
 
 ### 5.4. Simultaneous and Stale Events
 
@@ -1117,7 +1171,7 @@ How a Scenario is encoded or submitted is an interface concern (1.2).
 
 The *closingTimestamp* is the *startTimestamp* plus *intervalCount* ×
 *intervalLength*. No Calls arrive after it. The simulation then continues through the
-drain (Section 9), so the end of a Replication is not a parameter.
+drain (Section 8), so the end of a Replication is not a parameter.
 
 The *intervalLength* is a parameter, not only a reporting choice, because the arrival
 rate is constant within an Interval (6.2). Daylight-saving changes are out of scope for
@@ -1158,11 +1212,11 @@ multiple Queues.
 | *talkTimeDistribution* | The distribution of Talk Time. |
 | *wrapUpTimeDistribution* | The distribution of Wrap-up Time. |
 
-The MVP has one Queue (Section 9). A Talk Time / Wrap-up Time correlation is not in the
+The MVP has one Queue (Section 8). A Talk Time / Wrap-up Time correlation is not in the
 MVP, where they are independent (3.2.2).
 
 In the MVP, every distribution in 6.3 and 6.4 is constant for the whole day. Values
-that vary by Interval are deferred (Section 9).
+that vary by Interval are deferred (Section 8).
 
 ### 6.5. Agents
 
@@ -1171,7 +1225,7 @@ that vary by Interval are deferred (Section 9).
 | *identity* | The Agent’s unique identifier. It also sets the order of simultaneous Agent Events (5.4). |
 | *queues* | The Queues the Agent joins at login. In the MVP, the one Queue. |
 | *shiftStartTimestamp* | When the Agent’s shift starts. |
-| *shiftEndTimestamp* | When the Agent’s shift ends. It is later than the *shiftStartTimestamp* and not later than the *closingTimestamp*. A value equal to the *closingTimestamp* means the Agent stays joined until the Queue is empty (5.3.2, Section 9). |
+| *shiftEndTimestamp* | When the Agent’s shift ends. It is later than the *shiftStartTimestamp* and not later than the *closingTimestamp*. A value equal to the *closingTimestamp* means the Agent stays joined until the Queue is empty (5.3.2, Section 8). |
 | *breaks* | A list of breaks. The list may be empty. Each break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance* (zero or more; zero means the break never starts early). The *scheduledStart* and *duration* lie within the shift, breaks do not overlap, and *scheduledStart* minus *earlyStartAllowance* is not before the *shiftStartTimestamp*. The Agent may start the break later than *scheduledStart* (5.3.2). |
 
 The Scenario lists every Agent in the Contact Center’s *agents* (3.1.2). The Staffing
@@ -1191,20 +1245,21 @@ families:
 
 Lognormal is described by its mean and standard deviation, not by the parameters of the
 underlying normal distribution, so its values can be compared directly with measured
-AHT. These families cover the validation runs in Section 9: constant zero for Alert
+AHT. These families cover the validation runs in Section 8: constant zero for Alert
 Time and Wrap-up Time, exponential for Talk Time and *patience*, and unlimited
 *patience*. Other families are added only when a need comes up.
 
 ### 6.7. Not Part of the Scenario
 
-These values are needed to run or measure a simulation, but they do not change what
+These values are needed to execute or measure a simulation, but they do not change what
 happens in a Replication, so they are not Scenario parameters:
 
-- **Run settings** - The number of Replications, and the random seed (1.2). They belong
-  to the Experiment or the run.
-- **Measurement settings** - The Service Level Threshold, the Service Level Target
-  (Section 8), and the Intervals used to compare with queueing theory in validation runs
-  (Section 9). Metrics are computed from the Scenario and the Event history (Section 7),
+- **Execution settings** - The number of Replications, which belongs to the Ensemble,
+  and the random seed (1.2), which belongs to the Replication. Each Replication’s seed
+  may be derived from a base seed set on the Ensemble.
+- **Measurement settings** - The Service Level Threshold, the Service Level Target,
+  and the Intervals used to compare with queueing theory in validation runs
+  (Section 8). Metrics are computed from the Scenario and the Event History (Section 7),
   so these can change after a Replication without running it again.
 - **Model rules** - Rules with only one option in the MVP: the Poisson arrival process
   (6.2), FIFO Call selection and longest-idle Agent selection (5.3.1), and the order of
@@ -1213,9 +1268,8 @@ happens in a Replication, so they are not Scenario parameters:
 
 ## 7. Metrics
 
-The record of a Replication is its *Event history*: every Event that occurred, its
-timestamp, and the Entities it involved. Every metric is defined in terms of the
-Scenario and the Event history, and nothing else. Durations such as Wait Time and Talk
+The record of a Replication is its Event History (2.3). Every metric is defined in terms of the
+Scenario and the Event History, and nothing else. Durations such as Wait Time and Talk
 Time are differences between timestamps. Counts such as Abandoned Calls come from which
 Events a Call went through.
 
@@ -1223,14 +1277,14 @@ Events a Call went through.
   one has a single, precise definition: which Calls or time periods it counts, and its
   numerator and denominator.
 - **Other metrics.** Metrics a simulation user defines, such as a different attribution
-  rule or a different Service Level Threshold, are computed from the same Event history.
+  rule or a different Service Level Threshold, are computed from the same Event History.
   They need no new Entities, Events, or Attributes.
-- **Completeness.** Because metrics come only from the Event history, every State change
+- **Completeness.** Because metrics come only from the Event History, every State change
   that a metric might depend on must be caused by an Event in Section 4. A State change
   with no Event cannot be measured.
 
 Values that are sampled but never take effect, such as the *patience* of a Caller whose
-Call is answered, are not part of the Event history. Whether the simulator also records
+Call is answered, are not part of the Event History. Whether the simulator also records
 them is a design question.
 
 ### 7.1. Interval Attribution
@@ -1272,7 +1326,7 @@ divided by the number of answered plus Abandoned Calls:
   Abandonment Rate (2.1), so the two rates do not overlap.
 - **Empty Interval.** If the denominator is zero, SL is undefined, not 100% or 0%.
 - Variants, such as SL without short abandons or SL that counts Blocked Calls, are
-  user-defined metrics over the same Event history.
+  user-defined metrics over the same Event History.
 
 ### 7.3. Reporting
 
@@ -1292,25 +1346,18 @@ no separate per-Queue level.
   Interval and for the whole day. A whole-day value pools the day’s Calls; it is not an
   average of Interval values.
 - **Occupancy and Utilization:** per Interval and for the whole day, pooled across all
-  Agents (total time divided by total time). Per-Agent values are deferred (Section 9).
+  Agents (total time divided by total time). Per-Agent values are deferred (Section 8).
 - **Queue Length:** the instantaneous count of *Queued* Calls is the underlying
   quantity. Per Interval, the time-weighted average and the maximum are reported, and
-  for the day, the maximum. The series over time is derived from the Event history.
+  for the day, the maximum. The series over time is derived from the Event History.
 
-**Summaries across Replications.** The model defines metrics per Replication only.
-Summaries are a separate step. The standard summary is the mean, the standard
+**Summaries across an Ensemble.** The model defines metrics per Replication only, as
+Replication Metrics. Summarizing them into Ensemble Metrics is a separate step (2.3.2). The standard summary is the mean, the standard
 deviation, and a 95% confidence interval (Student’s *t*) over the Replication values.
 No percentiles are standard in the MVP. The per-Replication values remain available for
-user-defined queries (Section 9).
+user-defined queries (Section 8).
 
-## 8. User-Level Goals
-
-- Business/simulation-user questions phrased in terms of metrics
-  - Is the configuration sufficient to achieve the Service Level Target?
-- Bridge to Spec-Kit user stories (kept out of scope for this doc’s own
-  requirements language)
-
-## 9. Assumptions & Out of Scope
+## 8. Assumptions & Out of Scope
 
 The MVP has one Contact Center with one Queue. Multi-Queue simulations are out of
 scope. It follows that an Agent joins at most one
@@ -1349,8 +1396,9 @@ system: no Calls in the Queue and no Calls in progress.
   describes. The Replication ends when the last Wrap-up ends. Agents whose
   *shiftEndTimestamp* is earlier end their shifts as scheduled, even during the
   drain. If no Agent remains and Calls are still waiting, the Scenario has not staffed
-  the drain, and the Queue never empties unless Callers abandon. Draining ensures the final Intervals’ Calls are complete,
-  so their metrics are not biased toward short Calls.
+  the drain, and the Queue never empties unless Callers abandon. Draining ensures the
+  final Intervals’ Calls are complete, so their metrics are not biased toward short
+  Calls.
 - **Validation runs.** The Erlang formulas describe steady state. Validation against
   them (see 2.2) uses a long day with constant parameters and compares the middle
   Intervals, excluding the transient start and the drain.
@@ -1361,7 +1409,7 @@ Deferred (not in the MVP, but the model must not rule them out):
   remaining Talk Time, Wrap-up Time, and *patience* sampled per Replication at
   initialization. The snapshot could come from a checkpoint or from real data.
 - User-defined metrics and ad hoc queries over simulation output, including other
-  attribution rules. The Event history (Section 7) is what makes these possible.
+  attribution rules. The Event History (Section 7) is what makes these possible.
 - A limit on the Calls the Contact Center can hold at once (for example, trunks or
   announcement ports). Blocked treatment time would then consume capacity and could
   cause further blocking, so the zero-time *Blocked* state (5.2) would need revisiting.
@@ -1376,7 +1424,7 @@ Deferred (not in the MVP, but the model must not rule them out):
 - Redirect on no answer: an *Alerting* Agent who does not answer, and the Call’s return
   to the Queue.
 - Descriptive Agent Attributes (such as team, shift, or skill) that do not change
-  behavior but can be used to group metrics, and per-Agent metrics. The Event history
+  behavior but can be used to group metrics, and per-Agent metrics. The Event History
   identifies each Agent (3), so nothing in the model rules them out.
 - Other Queueing Policy rules (5.3.1): Call selection other than FIFO (for example,
   priority), Agent selection other than longest idle (for example, skills-based,
@@ -1397,35 +1445,8 @@ Boundaries of the model (these hold beyond the MVP):
   Service Level Target belongs to the separate downstream staffing planner
   specification (see 1.2).
 
-## 10. Open Questions
+## 9. Open Questions
 
 Undecided items, to be resolved before `/speckit-specify`. Each question names the
 section it affects. When a question is resolved, record the decision in that section and
 remove it from this list.
-
-### 10.1. Document Structure
-
-- **OQ-1. Purpose statement (Section 1).** Should the purpose say more directly that
-  this document is a shared model across three domains (contact center operations,
-  simulation software design, and queueing theory), written for implementors, and
-  limited to an MVP? See the draft notes in the HTML comment in Section 1. [DS] Revisit
-  and update Section 1 after most of the other content is complete.
-
-### 10.2. Policies (5.3)
-
-None open.
-
-### 10.3. Parameters (Section 6)
-
-None open.
-
-### 10.4. Metrics (Section 7)
-
-None open.
-
-### 10.5. Scope and Goals (Sections 8, 9)
-
-- **OQ-22. User-level goals.** Which simulation-user questions does the MVP answer,
-  beyond “Is the configuration sufficient to achieve the Service Level Target?” For
-  example: the Abandonment Rate at a given staffing level, or how Service Level varies
-  across the day. [DS] Defer until other questions are resolved.
