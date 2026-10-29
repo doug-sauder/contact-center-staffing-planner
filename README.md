@@ -26,3 +26,7 @@ The project uses [Spec-Kit](https://github.com/github/spec-kit) for spec-driven 
 ## Scope
 
 The MVP (minimum viable product) covers inbound voice calls, one Contact Center, and one Queue. Other channels and the staffing recommendation logic itself are out of scope for the initial simulator.
+
+## License
+
+[MIT](LICENSE)
