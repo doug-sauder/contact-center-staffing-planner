@@ -1040,16 +1040,17 @@ Attributes that change during a Replication:
 
 #### 6.1. Queueing Policy
 
-The Queueing Policy decides what happens to a Call on arrival, which Agent gets a Call,
-and which waiting Call an Agent gets. In the MVP:
+The Queueing Policy decides what happens to a Call on arrival, which Agent gets a Call
+(when more than one Agent is available), and which waiting Call an Agent gets (when
+there is more than one waiting Call). In the MVP:
 
-- **Queue capacity.** *capacity* counts only Calls waiting in the Queue (*Queued*).
-  Calls that are *Alerting* or *Connected* do not count. The Queue is full when the
-  number of Calls in its *calls* equals its *capacity*.
+- **Queue capacity.** *capacity* counts only Calls waiting in the Queue (Calls that are
+  *Queued*). Calls that are *Alerting* or *Connected* do not count. The Queue is full
+  when the number of Calls in its *calls* equals its *capacity*.
   - A *capacity* of zero means no Call ever waits: each Call is routed or Blocked on
-    arrival. This matches Erlang B (2.2).
+    arrival. This matches Erlang B (section 10).
   - An unlimited *capacity* means no Call is ever Blocked. This matches Erlang C and
-    Erlang A (2.2).
+    Erlang A (section 10).
 - **On arrival.** If an Agent is available, the Contact Center routes the Call (CC
   Routed Call). Otherwise, if the Queue is not full, it queues the Call (CC Queued
   Call). Otherwise, it blocks the Call (CC Blocked Call). A full Queue is the only
@@ -1075,8 +1076,8 @@ and which waiting Call an Agent gets. In the MVP:
 #### 6.2. Staffing Policy
 
 The Staffing Policy decides when each Agent works and is available. In the MVP, it
-follows the Agent schedules in the Scenario (6.5). Each Agent has one shift and may have
-breaks. The schedule produces these Agent Events:
+follows the Agent schedules in the Scenario (section 8.5). Each Agent has one shift and
+may have breaks. The schedule produces these Agent Events:
 
 - At the *shiftStartTimestamp*: Agent Logged In, then Agent Joined Queue.
 - When a break becomes due: Agent Became Not Ready if the Agent is *Ready*; otherwise
@@ -1087,7 +1088,7 @@ breaks. The schedule produces these Agent Events:
   Out as soon as the Agent is *Inactive*.
 
 **Breaks.** A break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance*
-(6.5). It becomes *due* at its *scheduledStart* minus its *earlyStartAllowance*. A
+(8.5). It becomes *due* at its *scheduledStart* minus its *earlyStartAllowance*. A
 break is a flexible window, not a fixed time slot:
 
 - If the Agent is *Ready* when the break becomes due, the break starts at once. This can
@@ -1096,7 +1097,7 @@ break is a flexible window, not a fixed time slot:
 - If the Agent is *Alerting*, *Busy*, or in *Wrap-up*, Agent Requested Not Ready sets
   *notReadyPending*, and the break starts when Wrap-up ends, even if Calls are waiting.
   The break can start after the *scheduledStart*. The Agent who is not *Ready* when the
-  break becomes due therefore starts it at the first moment they would otherwise become
+  break becomes due therefore starts it at the first moment he would otherwise become
   *Ready*.
 - A break always lasts its full *duration*, measured from when it actually starts. A
   late start does not shorten it, and an early start does not lengthen it. Agent Became
@@ -1109,7 +1110,7 @@ break is a flexible window, not a fixed time slot:
 - A break that is not yet started when the shift ends is not taken.
 
 **Shift end.** Agent Ended Shift occurs at the Agent’s *shiftEndTimestamp*, which is not
-later than the *closingTimestamp* (6.5). It sets *logoutPending* to “true” and
+later than the *closingTimestamp* (8.1). It sets *logoutPending* to “true” and
 *notReadyPending* to “false”, which cancels any pending break. It does not change the
 Agent’s *activityState*. The Staffing Policy then *releases* the Agent: Agent Left
 Queue for each Queue, then Agent Logged Out once the Agent is *Inactive*. When the Agent
