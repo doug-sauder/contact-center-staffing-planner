@@ -259,8 +259,6 @@ Metrics:
 
 ## 3. Simulation Framework
 
-(Scenario, Replication, Ensemble, Experiment, Event History, processing pipeline)
-
 ### 3.1. Concepts
 
 The main purpose of the simulator is to generate realistic statistical information about
@@ -304,10 +302,10 @@ classDiagram
 
 Formal definitions are below:
 
-- **Simulation Time** - The simulation’s clock: the timeline on which all timestamps,
-  such as *arrivalTimestamp*, are recorded. It is not wall-clock time. Simulation Time
-  is neither a duration nor a timestamp, so it is an exception to the naming rule in
-  1.4.
+- **Simulation Time** - The simulation’s clock. Event timestamps in the Event History
+  are taken from Simulation Time, as are all timestamps (such as *arrivalTimestamp*). It
+  is not wall-clock time. Simulation Time is neither a duration nor a timestamp, so it
+  is an exception to the naming rule in 1.4.
 - **Scenario** - A complete set of Parameter values that apply to each Replication in an
    Ensemble. “Complete” means the model has no hidden defaults: everything that affects
   what the simulated contact center does is set in the Scenario. Two Replications of the
@@ -522,6 +520,8 @@ In this model, there is only one Contact Center.
 
 #### 5.1.3. Agent
 
+##### 5.1.3.1. Overview
+
 An Agent handles Calls. To handle a Call, an Agent answers the Call and remains on the
 Call until the Caller releases it. After the Caller releases the Call, the Agent
 completes Wrap-up before becoming available to handle another Call.
@@ -531,6 +531,8 @@ An Agent conducts all his activity in a work shift, which has a scheduled start 
 An Agent *joins* one or more Queues. When an Agent joins a Queue, he can handle Calls received for that Queue. An Agent may *leave* (unjoin) a Queue.
 
 An Agent has state and attributes.
+
+##### 5.1.3.2. Attributes and State
 
 **Attributes**
 
@@ -599,7 +601,7 @@ Activity State:
   *activityState* does not change. When he completes Wrap-up, he goes to *Inactive*
   instead of *Ready* or *Not Ready*.
 
-##### 5.1.3.1 Agent State Transitions
+##### 5.1.3.3. Agent State Transitions
 
 The *activityState* applies only while the Agent’s *sessionState* is *Logged In*, so
 it is shown nested inside *Logged In*. Transition labels are Events from Section 4,
@@ -698,7 +700,8 @@ Activity State Transitions (apply only while *sessionState* is *Logged In*):
 - The rows marked “—” in the Activity State table are where the two tables meet:
   logging in starts the *activityState* at *Inactive*, and logging out ends it.
 
-**Measured Times**:
+
+##### 5.1.3.4. Measured Times
 
 The timeline below shows one Agent over about 13 minutes: the Agent joins a Queue,
 handles two Calls, requests Not Ready during the 2nd Call, takes a break, and then
@@ -796,11 +799,9 @@ design, it is primarily a modeling construct.)
 Notes:
 1. In this model, a Call succeeds when an Agent answers it. Whether the Agent resolves
    the Caller’s problem is outside the model’s scope.
-2. If an Agent is immediately available, the Contact Center adds the Call to the
-   destination Queue, then immediately routes it to an Agent. Consequently, the Caller
-   still "waits," but the Wait Time is zero. Rationale: This means Wait Time is defined
-   for every Call that enters a Queue, so metrics need no special case for immediate
-   connections.
+2. If an Agent is immediately available, the Contact Center routes the Call to that
+   Agent without adding it to the destination Queue. Such a Call is never *Queued* and
+   does not count toward the Queue’s *capacity*.
 
 ##### 5.2.1.2. Attributes and State
 
@@ -823,6 +824,8 @@ Notes:
 
 **State**
 
+The Call's *state* can assume one of the following values:
+
 - *Initial* - This is the initial state of a new Call.
 - *Queued* - The Contact Center added the Call to the destination Queue.
 - *Alerting* - The Contact Center routed the Call to an Agent. The Agent has not yet answered the Call.
@@ -835,8 +838,8 @@ Notes:
 - This model assumes the Caller always releases the Call.
   - Rationale: This assumption allows us to define a single event to end a call, which
     follows a consistent naming convention of `actor action [direct object]`.
-- The Call’s *state* ends at *Released*, but its record is complete only when the
-  *wrapUpEndTimestamp* is set.
+- The Call’s *state* ends at *Released*, but for a *Completed* Call, its record is
+  complete only when the *wrapUpEndTimestamp* is set.
 - When the Contact Center blocks a Call, it provides a treatment (*e.g.*, an
   announcement or busy tone) to the Caller, who then releases the Call. We consider the
   time between the Contact Center blocking the Call and the Caller releasing the call to
@@ -894,7 +897,7 @@ Call State Transitions:
   elapsed after the *arrivalTimestamp* (see 3.1.1).
 - The last row is a self-transition on the final state. The Call’s *state* no longer
   changes after *Released*, but its record is not complete until the Agent finishes
-  Wrap-up (see 3.2.1). The diagram omits this row.
+  Wrap-up (see 3.2.1). The diagram omits this transition.
 - *Blocked* lasts zero time: Caller Released Call follows CC Blocked Call immediately,
   so a Blocked Call’s *releaseTimestamp* equals its *arrivalTimestamp*. A real Contact
   Center may play an announcement before disconnecting, but that time does not matter
@@ -902,7 +905,7 @@ Call State Transitions:
   by its *arrivalTimestamp*, so a non-zero time would change no result (see Section 8).
 - *Initial* lasts zero time, because the model assumes the Contact Center processes
   new Calls instantly (see *arrivalTimestamp* in 3.2.1).
-- There is no *Alerting* → *Released* transition, because a Caller cannot release an
+- There is no *Alerting* to *Released* transition, because a Caller cannot release an
   *Alerting* Call (see 3.1.1).
 
 ##### 5.2.1.4. Measurements
@@ -1065,9 +1068,6 @@ and which waiting Call an Agent gets. In the MVP:
 - Only one of the two selection rules applies at any moment. Because routing is
   instant, Calls wait only when no Agent is available, and Agents wait in *Ready* only
   when no Calls are waiting.
-- Two Agents can enter *Ready* at the same Simulation Time, for example when both join
-  the Queue at the start of a shift. They are processed in order of Agent *identity*,
-  so the lowest-*identity* Agent receives a waiting Call (see 5.4).
 - Longest idle does not change aggregate metrics when Agents are identical. It does
   change per-Agent metrics (Occupancy, Utilization), because it spreads Calls evenly
   across Agents.
