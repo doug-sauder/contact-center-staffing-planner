@@ -115,8 +115,6 @@ do not follow the pattern, such as ASA (Average Speed of Answer), are kept as th
 
 ## 2. Glossary
 
-(one or two sentences per term, with a pointer to the owning section)
-
 This section defines the terms that are fundamental to the domain model. By explicitly
 identifying these terms, we can use them consistently, not only in this domain document,
 but also in other documents and in code. This section provides short definitions and
@@ -254,14 +252,14 @@ Metrics:
   1.2).
 - **Event History** - The record of one Replication: every Event that occurred, its
   timestamp, and the Entities it involved. The simulation produces it from a Scenario
-  and the execution settings (6.7), and it is the simulation’s only output. Every Metric
+  and the execution settings (8.7), and it is the simulation’s only output. Every Metric
   is computed from the Event History and the Scenario, and nothing else (Section 7).
 
 ## 3. Simulation Framework
 
 ### 3.1. Concepts
 
-The main purpose of the simulator is to generate realistic statistical information about
+The main purpose of the simulator is to generate reliable statistical information about
 the performance of a Contact Center. To achieve this goal, the simulator executes
 repeated simulation "runs", which we call *Replications*, and we take statistical
 measurements across Replications. Simply stated, the simulator implements Monte Carlo
@@ -271,12 +269,12 @@ The diagram below depicts basic execution concepts in the simulation framework.
 *Parameters* (section 8) are the configuration settings that control the behavior of the
 simulation. A *Scenario* aggregates all the Parameter values needed to control a single
 Replication. An *Ensemble* aggregates all the Replications that share the same Scenario.
-An *Experiment* aggregates one or more Ensembles, allowing a user to compare different
-Scenarios.
+An *Experiment* aggregates one or more Ensembles, allowing a user to compare statistics
+across different Scenarios.
 
-During a Replication, the simulator generates and records a number of Events, which it
-records in an *Event History*. Processing components (separate from the simulator) can
-use the Event History to generate statistical summary information (section 9).
+During a Replication, the simulator generates numerous Events, which it records in an
+*Event History*. Processing components (separate from the simulator) can use the Event
+History to generate statistical summary information (section 9).
 
 ```mermaid
 classDiagram
@@ -303,9 +301,9 @@ classDiagram
 Formal definitions are below:
 
 - **Simulation Time** - The simulation’s clock. Event timestamps in the Event History
-  are taken from Simulation Time, as are all timestamps (such as *arrivalTimestamp*). It
-  is not wall-clock time. Simulation Time is neither a duration nor a timestamp, so it
-  is an exception to the naming rule in 1.4.
+  are taken from Simulation Time, as are Call-related timestamps (such as
+  *arrivalTimestamp*). Simulation Time is not wall-clock time. Because it is neither a
+  duration nor a timestamp, the name is an exception to the naming rule in 1.4.
 - **Scenario** - A complete set of Parameter values that apply to each Replication in an
    Ensemble. “Complete” means the model has no hidden defaults: everything that affects
   what the simulated contact center does is set in the Scenario. Two Replications of the
@@ -315,11 +313,11 @@ Formal definitions are below:
   Scenario.
 - **Parameter** - A value set by the Scenario. A value belongs in the Scenario if it can
   differ between Scenarios and changes what happens in a Replication. A rule the model
-  fixes, such as FIFO Call selection ([ref needed]), is not a parameter: it cannot vary, so it
-  is not a hidden default. A value that changes only how Replications are run or how
-  results are measured, such as the number of Replications or the Service Level
-  Threshold, is not a parameter either (see [ref needed]). An Attribute differs from a
-  parameter: it is a property of an Entity, which may be set from a parameter (for
+  fixes, such as FIFO Call selection ([ref needed]), is not a Parameter: it cannot vary,
+  so it is not a hidden default. A value that changes only how Replications are run or
+  how results are measured, such as the number of Replications or the Service Level
+  Threshold, is not a Parameter either (see [ref needed]). An Attribute differs from a
+  Parameter: it is a property of an Entity, which may be set from a Parameter (for
   example, a Queue’s *capacity*) or may change during a Replication (for example, an
   Agent’s *activityState*).
 - **Replication** - One independent execution of the model for a given Scenario. Because
@@ -330,13 +328,12 @@ Formal definitions are below:
   7.3). The term is borrowed from weather and climate modeling, where it means the same:
   runs of one configuration that differ only in their random values.
 - **Experiment** - A set of Ensembles, one per Scenario, run together for comparison.
-  For example, 38 to 46 Agents in steps of 2. This is the sense used in design of
-  experiments. Note: How randomness is shared across Scenarios is a design concern (see
-  1.2).
-- **Event History** - The output record of one Replication: every Event that occurred, its
-  timestamp, and the Entities it involved. The simulation produces it from a Scenario
-  and the execution settings (6.7), and it is the simulation’s only output. Every Metric
-  is computed from the Event History, the Scenario, and the measurement settings.
+  For example, an Experiment may vary the number of Agents between 38 to 46 in steps of
+  2. Note: How randomness is shared across Scenarios is a design concern (see 1.2).
+- **Event History** - The generated output of one Replication: every Event that
+  occurred, including its timestamp and the Entities it involved. The simulation
+  produces it from a Scenario and the execution settings (8.7). Every Metric can be
+  computed from the Event History, the Scenario, and the measurement settings (8.7).
 
 Remarks:
 
@@ -348,14 +345,12 @@ Remarks:
 - A Replication belongs to exactly one Ensemble and is identified by its index within
   it. Each Replication has its own Event History and Measurements. An Ensemble
   has one Ensemble Summary, summarized from its Replications’ values. The
-  processing that produces them is in 2.3.2.
+  processing that produces them is in section 3.2.
 
 ### 3.2. Processing
 
-The simulation takes a Scenario and the execution settings, and produces an Event
-History for each Replication. Two later steps turn the Event History into Metrics.
-Measurement settings enter only at the second step, so changing one, such as the Service
-Level Threshold, means repeating only the later steps, not the simulation (6.7).
+The diagram below depicts the processing that generates the desired statistical data.
+The rounded boxes are processing steps. The rectangles are data.
 
 ```mermaid
 flowchart LR
@@ -365,9 +360,9 @@ flowchart LR
     Sim([Simulation])
     EH[Event History<br/>per Replication]
     Calc([Metric calculation])
-    Meas[Measurements]
+    Meas[Measurements<br/>per Replication]
     Summ([Summarization])
-    ES[Ensemble Summary]
+    ES[Ensemble Summary<br/>per Ensemble]
 
     Scenario --> Sim
     Exec --> Sim
@@ -380,11 +375,13 @@ flowchart LR
     Summ --> ES
 ```
 
-- The rounded boxes are processing steps and the rectangles are data. The steps are
-  part of the model; how they are packaged into components is a design concern (see
-  1.2).
-- Because the Event History is kept, a user can define a new Metric afterward and
-  compute it without running the simulation again (Section 7).
+The processing steps include simulation, metric calculation, and summarization. The
+simulation takes a Scenario (with its Parameters) and execution settings (8.7) as input
+and runs multiple Replications. For each Replication, it generates an Event History.
+Metric calculation takes an Event History and measurement settings (8.7) as input and
+generates measurements, one set of measurements for each Replication. The summarization
+processing calculates statistics across the sets of measurements to generate an Ensemble
+Summary.
 
 ## 4. Events
 
@@ -397,11 +394,13 @@ Simulation Time.
 Events are the basis for all Metrics. Every Event is recorded in the Event History with
 its timestamp, its Actor, its Object (if any), and any other relevant information. All
 Metrics are defined in such a way that they can be obtained from the Event History (see
-Section 9). This rule also imposes a requirement on this Event catalog: Every State
-change that a Metric could depend on must be caused by an Event, because a State change
-with no Event cannot be measured. When a new behavior is added to the model, any new
-State change requires a new Event. A Metric that cannot be computed from the existing
-Events indicates that the catalog is incomplete.
+Section 9).
+
+**Important**: This rule imposes a requirement on the Event catalog: Every State change
+that a Metric could depend on must be caused by an Event, because a State change with no
+Event cannot be measured. When a new behavior is added to the model, any new State
+change requires a new Event. A Metric that cannot be computed from the existing Events
+indicates that the catalog is incomplete.
 
 | Event | Description | Remarks |
 |---|---|---|
@@ -429,7 +428,7 @@ Events indicates that the catalog is incomplete.
    destination Queue. When a Call is routed, it is removed from the Queue’s *calls* and
    does not remain in the Queue while *Alerting* (see 3.2.2).
 
-2. When the shift ends (Agent Ended Shift), the Agent leaves all Queues when the
+2. When the shift ends (Shift Ended), the Agent leaves all Queues when the
    Staffing Policy releases them (5.3.2). Agent Left Queue takes effect immediately in
    any *activityState*; it stops new Calls from that Queue but does not affect a Call
    the Agent is already handling (see 3.1.3).
@@ -467,7 +466,7 @@ Call.
 
 In this model, a Call ends only when its Caller releases it, which may happen in three
 different situations. First, when the Contact Center blocks the Call, it provides a
-treatment (such as an announcement or busy signal) to the Caller, causing the Caller to
+treatment (such as an announcement or busy signal) to the Caller, inducing the Caller to
 release the Call. Second, when the Call remains in its Queue too long, as determined by
 the Caller’s *patience* attribute, the Caller releases the Call before it’s routed.
 Lastly, if the Call is answered, the Caller releases the Call after talking with the
@@ -541,15 +540,11 @@ An Agent has state and attributes.
 - *queues* - The list of Queues the Agent has joined.
 - *sessionState* - A dynamic state attribute that tracks an Agent’s work availability. (See values below.)
 - *activityState* - A dynamic state attribute that tracks an Agent’s work activity. (See values below.)
-- *notReadyPending* - The Agent has requested to become *Not Ready*. When this Boolean
-  attribute is “true”, the next *activityState* transition that would otherwise go to
-  *Ready* will instead go to *Not Ready*. In the MVP, the only reason an Agent becomes
-  *Not Ready* is a scheduled break (5.3.2).
-- *logoutPending* - The Agent’s scheduled shift has ended, but the Agent has not yet left their
-  Queues and logged out, because they are still on a Call or because Calls are still
-  waiting at closing. When this Boolean attribute is “true”, the Staffing Policy
-  releases the Agent as soon as the rules in 5.3.2 allow: the Agent leaves their Queues
-  and logs out. It is “false” until the Agent’s shift ends.
+
+An Agent’s request to go *Not Ready*, and the end of an Agent’s shift, can arrive while
+the Agent is working a Call. The Agent honors such a request at the next opportunity
+(5.1.3.3 and 6.2). How the simulator remembers a deferred request is a design concern
+(IMPL-001 and IMPL-002).
 
 **State**
 
@@ -582,124 +577,77 @@ Activity State:
 - The *Alerting* state tracks the *Alerting* state of the Call. During this time, the
   Contact Center can provide to the Agent a whisper message or information about the
   Caller.
-- An Agent must complete in-progress Call-related activity before he can become *Not
-  Ready*. If the Agent is in *Alerting*, *Busy*, or *Wrap-up*, he can request to become
-  *Not Ready* after *Wrap-up*. This request changes the Agent’s *notReadyPending*
-  attribute to “true”. After the Agent completes Wrap-up, his state changes to *Not
-  Ready* instead of *Ready*.
-- When an Agent’s shift ends (Agent Ended Shift), *logoutPending* is set. The Agent
-  leaves all Queues and logs out as soon as the Staffing Policy releases him (5.3.2).
-  That is normally at once, or at the end of Wrap-up if the Agent is *Alerting*,
-  *Busy*, or in *Wrap-up*, so the Agent can work past the end of the shift. An Agent
-  whose shift ends at closing stays joined, even on a break, while Calls are still
-  waiting.
-- An Agent can leave a Queue at any time. Leaving removes the Agent from the Queue’s
-  roster, so the Contact Center routes no more Calls from that Queue to the Agent. It
-  does not affect a Call the Agent is already handling: that Call stays with the Agent
-  (the Call’s *agent* attribute) through answer, Talk Time, and Wrap-up.
-- If an Agent leaves his last Queue while in *Alerting*, *Busy*, or in *Wrap-up*, his
-  *activityState* does not change. When he completes Wrap-up, he goes to *Inactive*
-  instead of *Ready* or *Not Ready*.
 
 ##### 5.1.3.3. Agent State Transitions
 
-The *activityState* applies only while the Agent’s *sessionState* is *Logged In*, so
-it is shown nested inside *Logged In*. Transition labels are Events from Section 4,
-except “(on completion)”, which marks a completion transition (see Notes). Labels in
-square brackets are conditions.
+The diagram shows the main flow of an Agent’s activity. It is deliberately not a
+complete state machine: the rules below it state how the exceptions behave, and the
+complete reference machine (every Event, condition, and action) is kept in the
+Implementation Decisions document (IMPL-REF-1). If the diagram, the reference machine,
+and these rules ever disagree, the rules govern.
+
+Transition labels are Events from Section 4. Labels in square brackets are conditions.
+Every state except *Logged Out* is within *Logged In*.
 
 ```mermaid
 stateDiagram-v2
     state "Logged Out" as LoggedOut
-    state "Logged In" as LoggedIn
     state "Not Ready" as NotReady
     state "Wrap-up" as WrapUp
 
     [*] --> LoggedOut
-    LoggedOut --> LoggedIn : Agent Logged In
-    LoggedIn --> LoggedOut : (on completion)
-
-    state LoggedIn {
-        [*] --> Inactive
-        Inactive --> Ready : Agent Joined Queue
-        Ready --> Alerting : CC Routed Call
-        Alerting --> Busy : Agent Answered Call
-        Busy --> WrapUp : Caller Released Call
-        WrapUp --> Ready : Agent Completed Wrap-Up [has Queues, notReadyPending is false]
-        WrapUp --> NotReady : Agent Completed Wrap-Up [has Queues, notReadyPending is true]
-        WrapUp --> Inactive : Agent Completed Wrap-Up [no Queues]
-        Ready --> NotReady : Agent Became Not Ready
-        NotReady --> Ready : Agent Became Ready
-        Ready --> Inactive : Agent Left Queue [last Queue]
-        NotReady --> Inactive : Agent Left Queue [last Queue]
-        Inactive --> [*] : Agent Logged Out
-    }
+    LoggedOut --> Inactive : Agent Logged In
+    Inactive --> Ready : Agent Joined Queue
+    Ready --> Alerting : CC Routed Call
+    Alerting --> Busy : Agent Answered Call
+    Busy --> WrapUp : Caller Released Call
+    WrapUp --> Ready : Agent Completed Wrap-Up
+    WrapUp --> NotReady : Agent Completed Wrap-Up [Not Ready requested]
+    WrapUp --> Inactive : Agent Completed Wrap-Up [no Queues]
+    Ready --> NotReady : Agent Became Not Ready
+    NotReady --> Ready : Agent Became Ready
+    Ready --> Inactive : Agent Left Queue [last Queue]
+    NotReady --> Inactive : Agent Left Queue [last Queue]
+    Inactive --> LoggedOut : Agent Logged Out
 ```
 
-Session State Transitions:
+Rules:
 
-| Current State | Event | Condition(s) | Next State |
-|---|---|---|---|
-| *Logged Out* | Agent Logged In | | *Logged In* |
-| *Logged In* | Agent Logged Out | *activityState* is *Inactive*; *logoutPending* is “true” | *Logged Out* |
-
-Activity State Transitions (apply only while *sessionState* is *Logged In*):
-
-| Current State | Event | Condition(s) | Actions | Next State |
-|---|---|---|---|---|
-| — (entering *Logged In*) | Agent Logged In | | | *Inactive* |
-| *Inactive* | Agent Joined Queue | | Add Agent to Queue’s *agents* / Add Queue to Agent’s *queues* | *Ready* |
-| *Ready* | CC Routed Call | | | *Alerting* |
-| *Alerting* | Agent Requested Not Ready | | Set *notReadyPending* to “true” | *Alerting* |
-| *Alerting* | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Alerting* |
-| *Alerting* | Agent Answered Call | | | *Busy* |
-| *Busy* | Agent Requested Not Ready | | Set *notReadyPending* to “true” | *Busy* |
-| *Busy* | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Busy* |
-| *Busy* | Caller Released Call | | | *Wrap-up* |
-| *Wrap-up* | Agent Requested Not Ready | | Set *notReadyPending* to “true” | *Wrap-up* |
-| *Wrap-up* | Agent Left Queue | | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Wrap-up* |
-| *Wrap-up* | Agent Completed Wrap-Up | *queues* is empty | Set *notReadyPending* to “false” | *Inactive* |
-| *Wrap-up* | Agent Completed Wrap-Up | *queues* is not empty; *notReadyPending* is “false” | | *Ready* |
-| *Wrap-up* | Agent Completed Wrap-Up | *queues* is not empty; *notReadyPending* is “true” | Set *notReadyPending* to “false” | *Not Ready* |
-| *Ready* | Agent Became Not Ready | | | *Not Ready* |
-| *Not Ready* | Agent Became Ready | | | *Ready* |
-| *Ready* | Agent Left Queue | last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Inactive* |
-| *Ready* | Agent Left Queue | not last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Ready* |
-| *Not Ready* | Agent Left Queue | last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Inactive* |
-| *Not Ready* | Agent Left Queue | not last Queue | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Not Ready* |
-| *Inactive* | Agent Logged Out | *logoutPending* is “true” | | — (leaving *Logged In*) |
-| *Ready* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Ready* |
-| *Not Ready* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Not Ready* |
-| *Alerting* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Alerting* |
-| *Busy* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Busy* |
-| *Wrap-up* | Agent Ended Shift | | Set *logoutPending* to “true” / Set *notReadyPending* to “false” | *Wrap-up* |
-| *Ready* | Agent Left Queue | *logoutPending* is “true”; release rule met (5.3.2) | Remove Agent from Queue’s *agents* / Remove Queue from Agent’s *queues* | *Inactive* |
+- **AGT-1. One Call at a time.** An Agent handles at most one Call at a time. The
+  Contact Center offers a Call only to an available Agent (see Notes above).
+- **AGT-2. A Call runs its course.** An Agent who is routed a Call goes through
+  *Alerting*, *Busy*, and *Wrap-up*, and is offered no other Call until Wrap-up is
+  complete.
+- **AGT-3. Going Not Ready.** A *Ready* Agent can go *Not Ready* at once. An Agent who
+  is *Alerting*, *Busy*, or in *Wrap-up* must finish the Call-related activity first:
+  when Wrap-up ends, the Agent goes *Not Ready* instead of *Ready*, even if Calls are
+  waiting. A request to go *Not Ready* never interrupts a Call. In the MVP, the only
+  reason an Agent goes *Not Ready* is a scheduled break (6.2).
+- **AGT-4. Leaving a Queue never disturbs a Call in hand.** An Agent can leave a Queue
+  at any time. Leaving stops the Contact Center from routing more Calls from that Queue
+  to the Agent. A Call the Agent is already handling stays with the Agent (the Call’s
+  *agent* attribute) through answer, Talk Time, and Wrap-up.
+- **AGT-5. *Inactive* means no Queues.** An Agent who has joined no Queue is *Inactive*.
+  An Agent who leaves the last Queue while *Ready* or *Not Ready* becomes *Inactive* at
+  once. An Agent who leaves it while *Alerting*, *Busy*, or in *Wrap-up* keeps that
+  state, and becomes *Inactive* (not *Ready* or *Not Ready*) when Wrap-up ends.
+- **AGT-6. Logging out.** An Agent logs out only when *Inactive*: joined to no Queue and
+  holding no Call.
+- **AGT-7. End of shift.** When the Agent’s scheduled shift ends, the Agent finishes any
+  Call-related activity, leaves all Queues, and logs out, as soon as the Staffing
+  Policy allows (6.2). The end of the shift does not change the Agent’s state by itself,
+  and it cancels a request to go *Not Ready* that has not yet taken effect. An Agent
+  can therefore work past the scheduled end of the shift (overtime).
 
 **Notes**:
 
-- Agent Left Queue can happen in any *activityState* except *Inactive*. While *Alerting*,
-  *Busy*, or in *Wrap-up*, it only removes the Agent from the Queue’s roster; the Agent finishes
-  the Call and goes to *Inactive* at the end of Wrap-up if no Queues remain (see 3.1.3).
-  The diagram omits these self-transitions and the Agent Requested Not Ready
-  self-transitions; the table lists them.
-- Agent Ended Shift does not change *activityState*. The Staffing Policy then releases
-  the Agent (5.3.2) with Agent Left Queue for each of the Agent’s Queues, followed by
-  Agent Logged Out once the Agent is *Inactive*. An Agent who was *Ready* or *Not Ready*
-  goes to *Inactive* and logs out at the same instant. An Agent who is *Alerting*,
-  *Busy*, or in *Wrap-up* goes to *Inactive* at the end of Wrap-up, because no Queues
-  remain, and then logs out. The exception is an Agent whose shift ends at closing, who
-  stays joined until the Queue is empty, and who finishes any break in progress (Not
-  *Ready* → *Inactive* happens when the Queue empties, or the Agent goes to *Ready* at the
-  end of the break if Calls are waiting). The table lists the Agent Ended Shift rows; the diagram
-  omits them.
-- The Agent can log out only from *Inactive*. In the diagram, Agent Logged Out moves the
-  Agent to the final state of *Logged In*; the edge labeled “(on completion)” from
-  *Logged In* to *Logged Out* is a completion transition that fires when that final
-  state is reached. It is not a second way to log out. The Session State table states
-  the same rule directly, as a condition on Agent Logged Out.
-- The rows marked “—” in the Activity State table are where the two tables meet:
-  logging in starts the *activityState* at *Inactive*, and logging out ends it.
-
+- The Staffing Policy (6.2) generates the Events that start and end breaks and that
+  release an Agent at the end of a shift. Agent Left Queue can occur in any
+  *activityState* except *Inactive*.
+- How the simulator carries these rules out is recorded in the Implementation Decisions
+  document: the deferred-request mechanism (IMPL-001, IMPL-002), the release procedure
+  (IMPL-003, IMPL-004), the two-level status model (IMPL-005), and Queue membership
+  (IMPL-006).
 
 ##### 5.1.3.4. Measured Times
 
@@ -1040,16 +988,17 @@ Attributes that change during a Replication:
 
 #### 6.1. Queueing Policy
 
-The Queueing Policy decides what happens to a Call on arrival, which Agent gets a Call,
-and which waiting Call an Agent gets. In the MVP:
+The Queueing Policy decides what happens to a Call on arrival, which Agent gets a Call
+(when more than one Agent is available), and which waiting Call an Agent gets (when
+there is more than one waiting Call).
 
-- **Queue capacity.** *capacity* counts only Calls waiting in the Queue (*Queued*).
-  Calls that are *Alerting* or *Connected* do not count. The Queue is full when the
-  number of Calls in its *calls* equals its *capacity*.
+- **Queue capacity.** *capacity* counts only Calls waiting in the Queue (Calls that are
+  *Queued*). Calls that are *Alerting* or *Connected* do not count. The Queue is full
+  when the number of Calls in its *calls* equals its *capacity*.
   - A *capacity* of zero means no Call ever waits: each Call is routed or Blocked on
-    arrival. This matches Erlang B (2.2).
+    arrival. This matches Erlang B (section 10).
   - An unlimited *capacity* means no Call is ever Blocked. This matches Erlang C and
-    Erlang A (2.2).
+    Erlang A (section 10).
 - **On arrival.** If an Agent is available, the Contact Center routes the Call (CC
   Routed Call). Otherwise, if the Queue is not full, it queues the Call (CC Queued
   Call). Otherwise, it blocks the Call (CC Blocked Call). A full Queue is the only
@@ -1075,71 +1024,75 @@ and which waiting Call an Agent gets. In the MVP:
 #### 6.2. Staffing Policy
 
 The Staffing Policy decides when each Agent works and is available. In the MVP, it
-follows the Agent schedules in the Scenario (6.5). Each Agent has one shift and may have
+follows the Agent schedules in the Scenario (8.5). Each Agent has one shift and may have
 breaks. The schedule produces these Agent Events:
 
 - At the *shiftStartTimestamp*: Agent Logged In, then Agent Joined Queue.
 - When a break becomes due: Agent Became Not Ready if the Agent is *Ready*; otherwise
-  Agent Requested Not Ready (see Breaks below).
+  Agent Requested Not Ready (the break then starts when the Agent finishes Wrap-up).
 - When a break ends: Agent Became Ready.
-- At the *shiftEndTimestamp*: Agent Ended Shift. When the Agent is released (see Shift
+- At the *shiftEndTimestamp*: Shift Ended. When the Agent is released (see Shift
   end below): Agent Left Queue for each Queue the Agent has joined, then Agent Logged
   Out as soon as the Agent is *Inactive*.
 
 **Breaks.** A break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance*
-(6.5). It becomes *due* at its *scheduledStart* minus its *earlyStartAllowance*. A
-break is a flexible window, not a fixed time slot:
+(8.5). It becomes *due* at its *scheduledStart* minus its *earlyStartAllowance*. A
+break is a flexible window, not a fixed time slot. These rules govern it:
 
-- If the Agent is *Ready* when the break becomes due, the break starts at once. This can
-  be up to *earlyStartAllowance* before the *scheduledStart*. With an allowance of zero,
-  a *Ready* Agent starts the break at the *scheduledStart*.
-- If the Agent is *Alerting*, *Busy*, or in *Wrap-up*, Agent Requested Not Ready sets
-  *notReadyPending*, and the break starts when Wrap-up ends, even if Calls are waiting.
-  The break can start after the *scheduledStart*. The Agent who is not *Ready* when the
-  break becomes due therefore starts it at the first moment they would otherwise become
+- **STF-1. A Ready Agent starts the break when it is due.** The break starts at once.
+  This can be up to *earlyStartAllowance* before the *scheduledStart*. With an allowance
+  of zero, a *Ready* Agent starts the break at the *scheduledStart*.
+- **STF-2. A working Agent starts the break after Wrap-up.** An Agent who is
+  *Alerting*, *Busy*, or in *Wrap-up* when the break is due finishes the Call-related
+  activity first. The break starts when Wrap-up ends, even if Calls are waiting, so it
+  can start after the *scheduledStart*. In other words, an Agent who is not *Ready* when
+  the break becomes due starts it at the first moment they would otherwise become
   *Ready*.
-- A break always lasts its full *duration*, measured from when it actually starts. A
-  late start does not shorten it, and an early start does not lengthen it. Agent Became
-  Ready occurs when the *duration* has elapsed after the start. A break never ends while
-  the Agent is in *Wrap-up*, because the Agent is *Not Ready* for the whole break.
-- Only one break is pending or in progress at a time. If another break becomes due
-  while one is pending or in progress, it waits. When the break in progress ends, a
-  waiting break starts at once: the Agent stays *Not Ready*, with no Agent Became Ready
-  between the two breaks, so no waiting Call is routed to the Agent.
-- A break that is not yet started when the shift ends is not taken.
+- **STF-3. A break lasts its full duration.** The duration is measured from when the
+  break actually starts. A late start does not shorten it, and an early start does not
+  lengthen it. The Agent is *Not Ready* for the whole break, so a break never ends
+  while the Agent is in *Wrap-up*.
+- **STF-4. One break at a time.** If another break becomes due while one is pending or
+  in progress, it waits. When the break in progress ends, a waiting break starts at
+  once: the Agent stays *Not Ready* between the two breaks, so no waiting Call is
+  routed to the Agent.
+- **STF-5. A break not started by the end of the shift is not taken.**
 
-**Shift end.** Agent Ended Shift occurs at the Agent’s *shiftEndTimestamp*, which is not
-later than the *closingTimestamp* (6.5). It sets *logoutPending* to “true” and
-*notReadyPending* to “false”, which cancels any pending break. It does not change the
-Agent’s *activityState*. The Staffing Policy then *releases* the Agent: Agent Left
-Queue for each Queue, then Agent Logged Out once the Agent is *Inactive*. When the Agent
-is released depends on when the shift ends:
+**Shift end.** Shift Ended occurs at the Agent’s *shiftEndTimestamp*, which is not
+later than the *closingTimestamp* (8.1). The Staffing Policy then *releases* the Agent:
+Agent Left Queue for each Queue, then Agent Logged Out once the Agent is *Inactive*.
+These rules govern when the Agent is released:
 
-- **Shift ends before closing.** The Agent is released at Agent Ended Shift if they are
+- **STF-6. Work in hand is finished.** The end of the shift never interrupts a Call.
+  An Agent who is *Alerting*, *Busy*, or in *Wrap-up* finishes the Call and Wrap-up
+  before logging out.
+- **STF-7. A shift that ends before closing releases the Agent at once** if the Agent is
   *Ready* or *Not Ready*. An Agent on a break has the break cut short. An Agent who is
-  *Alerting*, *Busy*, or in *Wrap-up* has Agent Left Queue take effect at once (3.1.3);
-  they finish the Call, go to *Inactive* at the end of Wrap-up, and log out. Calls may
-  still be waiting; the Scenario is responsible for the staffing.
-- **Shift ends at closing** (*shiftEndTimestamp* equals the *closingTimestamp*). The
-  Agent stays joined to the Queue, so the planned staffing at closing is not reduced,
-  and a break in progress runs to its end, so the Agent gets the full break. The Agent
-  is released at the first moment, at or after Agent Ended Shift, when the Queue’s
-  *calls* is empty and the Agent is not *Alerting*, *Busy*, or in Wrap-up. This is
-  checked when:
-  - Agent Ended Shift occurs;
-  - the Agent’s Wrap-up ends;
-  - the Agent’s break ends; and
-  - the Queue becomes empty (by CC Routed Call or by a Caller abandoning). An Agent on a
-    break is then released at once, and the break is cut short.
-
-  If Calls are waiting at the end of Wrap-up or of a break, the Agent goes to *Ready* and
-  is routed the next Call, and the check repeats at the end of that Call’s Wrap-up. After
-  closing no Calls arrive, so the Queue only shrinks and every such Agent is eventually
-  released.
+  *Alerting*, *Busy*, or in *Wrap-up* stops receiving new Calls at once, finishes the
+  Call, and then logs out. Calls may still be waiting; the Scenario is responsible for
+  the staffing.
+- **STF-8. A shift that ends at closing keeps the Agent until the Queue is empty.**
+  (The *shiftEndTimestamp* equals the *closingTimestamp*.) The Agent stays joined to the
+  Queue, so the planned staffing at closing is not reduced, and a break in progress runs
+  to its end, so the Agent gets the full break. The Agent is released at the first moment
+  when no Calls are waiting and the Agent is not *Alerting*, *Busy*, or in Wrap-up. An
+  Agent on a break is released at once when the Queue becomes empty, and the break is cut
+  short.
+- **STF-9. Calls waiting at closing keep Agents working.** If Calls are waiting when an
+  Agent finishes Wrap-up or a break, the Agent goes *Ready* and is routed the next Call.
+  After closing no Calls arrive, so the Queue only shrinks and every such Agent is
+  eventually released.
+- **STF-10. Overtime counts as logged-in time.** The time between Shift Ended and
+  Agent Logged Out is the Agent’s overtime, and it counts as logged-in time for
+  Utilization.
 
 A *Ready* Agent who is still joined can exist only when the Queue is empty, so a *Ready*
-Agent at closing is released at once. The time between Agent Ended Shift and Agent
-Logged Out is the Agent’s overtime, and it counts as logged-in time for Utilization.
+Agent at closing is released at once.
+
+**Mechanism.** How the simulator carries out these rules is recorded in the
+Implementation Decisions document: break timing (IMPL-007, IMPL-008), cancellation of a
+pending break at the end of the shift (IMPL-001, IMPL-009), and the release procedure
+and its checks (IMPL-002 to IMPL-004).
 
 **Notes**:
 
@@ -1148,10 +1101,10 @@ Logged Out is the Agent’s overtime, and it counts as logged-in time for Utiliz
   a Scenario parameter. A client, such as the staffing planner, converts a count into
   Agent schedules before it submits the Scenario (see 1.2).
 - Breaks are fixed in the Scenario in the MVP. Adjusting them during a Replication is
-  deferred (Section 8). A later version could distinguish mandatory breaks from
+  deferred (Section 11). A later version could distinguish mandatory breaks from
   discretionary ones.
 - An Agent whose shift ends before closing leaves even if Calls are waiting. The
-  Scenario is responsible for scheduling enough Agents (see Section 8).
+  Scenario is responsible for scheduling enough Agents (see Section 11).
 
 ## 7. Event Ordering
 
@@ -1274,7 +1227,7 @@ This section defines how the simulator's results are measured. Sections 9.1 and 
 
 ### 9.1. Concepts
 
-Every Metric is computed from the Scenario, the Event History, and the measurement settings (Section 3), and from nothing else.
+Every Metric is computed from the Scenario, the Event History, and the measurement settings (8.7), and from nothing else.
 
 | Concept | Definition | Example |
 |---|---|---|
@@ -1467,7 +1420,7 @@ These Metrics are based on time, not Calls. Agent time is pooled across all Agen
 
 - **On-Call Time** - time in *Alerting*, *Busy*, or *Wrap-up*.
 - **Available Time** - On-Call Time plus time in *Ready*.
-- **Logged-In Time** - Available Time plus time in *Not Ready* and *Inactive* while *Logged In*, from Agent Logged In to Agent Logged Out. It includes overtime inside the Period (the time after Agent Ended Shift).
+- **Logged-In Time** - Available Time plus time in *Not Ready* and *Inactive* while *Logged In*, from Agent Logged In to Agent Logged Out. It includes overtime inside the Period (the time after Shift Ended).
 
 **Metrics.**
 
