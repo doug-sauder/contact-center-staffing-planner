@@ -222,8 +222,10 @@ Metrics:
 - **Distribution** - A probability distribution from which the simulation samples
   random values, such as a Caller’s *patience*. Distributions are specified in
   Section 6.
-- **Simulation Time** - The model’s clock: the timeline on which all points in time, such
-  as *arrivedAt*, are recorded. It is not wall-clock time.
+- **Simulation Time** - The model’s clock: the calendar date and time of day in the
+  modeled Contact Center, on which all points in time, such as *arrivedAt*, are
+  recorded. No point in time is earlier than *scheduledOpening*. It is not execution
+  time, which is how long a run takes on a computer.
 - **Scenario** - A complete set of Parameter values that apply to each Replication in an Ensemble.
    “Complete” means the model has no hidden defaults: everything that
   affects what the simulated contact center does is set in the Scenario. Two
@@ -304,7 +306,9 @@ Formal definitions are below:
 
 - **Simulation Time** - The simulation’s clock. The time at which each Event occurred
   in the Event History is taken from Simulation Time, as are Call-related points in
-  time (such as *arrivedAt*). Simulation Time is not wall-clock time.
+  time (such as *arrivedAt*). No point in time is earlier than
+  *scheduledOpening*. Simulation Time is not execution time, which is how long a run
+  takes on a computer.
 - **Scenario** - A complete set of Parameter values that apply to each Replication in an
    Ensemble. “Complete” means the model has no hidden defaults: everything that affects
   what the simulated contact center does is set in the Scenario. Two Replications of the
@@ -388,8 +392,8 @@ Summary.
 
 Being based on a discrete-event simulation model, the simulator is driven by *Events*,
 which occur at specific instants in time. As the simulator progresses through a
-simulation, it advances its clock in *Simulation Time*, which is distinct from “wall
-clock time.” The time instant that marks the occurrence of each Event is specified in
+simulation, it advances its clock in *Simulation Time*, which is distinct from
+“execution time.” The time instant that marks the occurrence of each Event is specified in
 Simulation Time.
 
 Events are the basis for all Metrics. Every Event is recorded in the Event History with
@@ -1024,21 +1028,23 @@ there is more than one waiting Call).
 
 #### 6.2. Staffing Policy
 
-The Staffing Policy decides when each Agent works and is available. In the MVP, it
-follows the Agent schedules in the Scenario (8.5). Each Agent has one shift and may have
-breaks. The schedule produces these Agent Events:
+The Staffing Policy decides when each Agent works and is available. A Scenario defines a
+schedule for each Agent (8.5), which the Staffing Policy implements. Each Agent has one
+shift and may have zero or more breaks. The schedule produces these Agent Events:
 
 - At the *scheduledShiftStart*: Agent Logged In, then Agent Joined Queue.
 - When a break becomes due: Agent Became Not Ready if the Agent is *Ready*; otherwise
   Agent Requested Not Ready (the break then starts when the Agent finishes Wrap-up).
 - When a break ends: Agent Became Ready.
 - At the *scheduledShiftEnd*: Shift Ended. When the Agent is released (see Shift
-  end below): Agent Left Queue for each Queue the Agent has joined, then Agent Logged
+  End below): Agent Left Queue for each Queue the Agent has joined, then Agent Logged
   Out as soon as the Agent is *Inactive*.
 
-**Breaks.** A break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance*
-(8.5). It becomes *due* at its *scheduledStart* minus its *earlyStartAllowance*. A
-break is a flexible window, not a fixed time slot. These rules govern it:
+**Breaks**
+
+A break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance* (8.5). It
+becomes *due* at its *scheduledStart* minus its *earlyStartAllowance*. A break is a
+flexible window, not a fixed time slot. These rules govern it:
 
 - **STF-1. A Ready Agent starts the break when it is due.** The break starts at once.
   This can be up to *earlyStartAllowance* before the *scheduledStart*. With an allowance
@@ -1051,15 +1057,16 @@ break is a flexible window, not a fixed time slot. These rules govern it:
   *Ready*.
 - **STF-3. A break lasts its full duration.** The duration is measured from when the
   break actually starts. A late start does not shorten it, and an early start does not
-  lengthen it. The Agent is *Not Ready* for the whole break, so a break never ends
-  while the Agent is in *Wrap-up*.
+  lengthen it. The Agent is *Not Ready* for the whole break.
 - **STF-4. One break at a time.** If another break becomes due while one is pending or
   in progress, it waits. When the break in progress ends, a waiting break starts at
   once: the Agent stays *Not Ready* between the two breaks, so no waiting Call is
   routed to the Agent.
 - **STF-5. A break not started by the end of the shift is not taken.**
 
-**Shift end.** Shift Ended occurs at the Agent’s *scheduledShiftEnd*, which is not
+**Shift End**
+
+Shift Ended occurs at the Agent’s *scheduledShiftEnd*, which is not
 later than the *scheduledClosing* (8.1). The Staffing Policy then *releases* the Agent:
 Agent Left Queue for each Queue, then Agent Logged Out once the Agent is *Inactive*.
 These rules govern when the Agent is released:
@@ -1113,7 +1120,7 @@ and its checks (IMPL-002 to IMPL-004).
 
 ## 8. Parameters
 
-This section lists the parameters that make up a Scenario (2.3). Together they are
+This section lists the parameters that make up a Scenario (3.1). Together they are
 complete: nothing else affects what happens in a Replication except the random values.
 How a Scenario is encoded or submitted is an interface concern (1.2).
 
@@ -1121,7 +1128,7 @@ How a Scenario is encoded or submitted is an interface concern (1.2).
 
 | Parameter | Meaning |
 |---|---|
-| *scheduledOpening* | The date and time of day of Simulation Time zero. It is also the opening time and the start of the first Interval. |
+| *scheduledOpening* | The date and time of day at which the Contact Center opens. It is also the start of the first Interval. |
 | *intervalLength* | The length of each Interval, such as 15 or 30 minutes. |
 | *intervalCount* | The number of Intervals in the open period. |
 
@@ -1131,7 +1138,7 @@ drain (Section 8), so the end of a Replication is not a parameter.
 
 The *intervalLength* is a parameter, not only a reporting choice, because the arrival
 rate is constant within an Interval (6.2). Daylight-saving changes are out of scope for
-the MVP: Simulation Time maps to clock time by adding it to the *scheduledOpening*.
+the MVP: Simulation Time runs continuously, with no adjustment for them.
 
 ### 8.2. Demand
 
@@ -1180,7 +1187,7 @@ that vary by Interval are deferred (Section 8).
 |---|---|
 | *identity* | The Agent’s unique identifier. It also sets the order of simultaneous Agent Events (5.4). |
 | *queues* | The Queues the Agent joins at login. In the MVP, the one Queue. |
-| *scheduledShiftStart* | When the Agent’s shift starts. |
+| *scheduledShiftStart* | When the Agent’s shift starts. It is not earlier than the *scheduledOpening*. |
 | *scheduledShiftEnd* | When the Agent’s shift ends. It is later than the *scheduledShiftStart* and not later than the *scheduledClosing*. A value equal to the *scheduledClosing* means the Agent stays joined until the Queue is empty (5.3.2, Section 8). |
 | *breaks* | A list of breaks. The list may be empty. Each break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance* (zero or more; zero means the break never starts early). The *scheduledStart* and *duration* lie within the shift, breaks do not overlap, and *scheduledStart* minus *earlyStartAllowance* is not before the *scheduledShiftStart*. The Agent may start the break later than *scheduledStart* (5.3.2). |
 
