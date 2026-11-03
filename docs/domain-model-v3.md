@@ -71,12 +71,11 @@ The table below describes the other conventions used in this document.
 |---|---|---|
 | Entity | Capitalized, regular face | Caller, Call, Agent, Queue, Contact Center |
 | Other defined term | Capitalized, regular face | Wait Time, Occupancy, Scenario |
-| Attribute or Scenario parameter | camelCase, lowercase first letter, italic | *activityState*, *arrivalTimestamp*, *patience* |
+| Attribute or Scenario parameter | camelCase, lowercase first letter, italic | *activityState*, *arrivedAt*, *patience* |
 | Qualified attribute | Entity name, a period, then the attribute | Call.*state*, Agent.*activityState* |
 | State or *disposition* value | Capitalized, italic, spaces allowed | *Alerting*, *Not Ready*, *Logged In*, *Abandoned* |
 | Event | Capitalized, with spaces, regular face, in the form Actor (past tense) Verb Object | Agent Answered Call, CC Blocked Call |
 | Duration | Defined term ending in *Time* | Talk Time, Handle Time |
-| Timestamp | Attribute name ending in *Timestamp* | *answerTimestamp*, *wrapUpEndTimestamp* |
 
 Notes on the table:
 
@@ -92,7 +91,7 @@ Notes on the table:
 - Write the qualified form only when a bare name could be ambiguous. For example,
   *identity* and *state* appear on several Entities.
 - Attribute names are written in camelCase, and a hyphenated defined term loses its
-  hyphen. For example, *wrapUpEndTimestamp* belongs to Wrap-up, and
+  hyphen. For example, *wrapUpEndedAt* belongs to Wrap-up, and
   *wrapUpTimeDistribution* sets Wrap-up Time.
 - A State or *disposition* value is italic when it names the value itself, as in “the
   Agent is *Ready*” or “set *disposition* to *Abandoned*”. The defined terms Abandoned
@@ -101,13 +100,17 @@ Notes on the table:
   an attribute apart from these.
 - In Event names, CC abbreviates Contact Center. No other Actor is abbreviated.
 
-Defined terms distinguish durations from points in time:
+Names distinguish durations from points in time, but context does the main work:
 
-- A term ending in *Time* is a duration. Examples: Talk Time, Wait Time, Handle Time,
-  and Wrap-up Time. This follows standard contact center usage.
-- An attribute name ending in *Timestamp* is a point in Simulation Time. Examples:
-  *arrivalTimestamp* and *answerTimestamp*. In prose, the plural “timestamps” refers to
-  these attributes in general.
+- A defined term ending in *Time* is a duration. Examples: Talk Time, Wait Time,
+  Handle Time, and Wrap-up Time. This follows standard contact center usage.
+- An attribute that records when something happened has a past-tense name ending in
+  *At*. Examples: *arrivedAt* and *answeredAt*.
+- An attribute that sets when something is planned to happen begins with *scheduled*.
+  Examples: *scheduledShiftEnd* and *scheduledClosing*.
+- A planned point and the recorded point it corresponds to are different values and
+  may differ. For example, a break may start later than its *scheduledStart* (5.3.2).
+  Recorded points are authoritative in the Event History.
 
 This rule applies only to defined terms. The word “time” in ordinary phrases, such as
 “over time” or “at any time”, keeps its everyday meaning. Standard industry names that
@@ -143,18 +146,18 @@ Concepts:
   answers it (for example, the Agent’s phone is ringing). The Call and the Agent are
   both *Alerting* during this period.
 - **Wait Time** - The time a Caller waits for an Agent. For an answered Call, it’s
-  measured from *arrivalTimestamp* to *answerTimestamp*. For an Abandoned Call, it’s
-  measured from *arrivalTimestamp* to *releaseTimestamp*.
-- **Alert Time** - The time a Call spends *Alerting*, measured from *alertTimestamp* to
-  *answerTimestamp*. An *Alerting* Call has been routed and has an assigned Agent, so
+  measured from *arrivedAt* to *answeredAt*. For an Abandoned Call, it’s
+  measured from *arrivedAt* to *releasedAt*.
+- **Alert Time** - The time a Call spends *Alerting*, measured from *alertedAt* to
+  *answeredAt*. An *Alerting* Call has been routed and has an assigned Agent, so
   Alert Time is a measurable quantity for both Calls and Agents.
 - **Talk Time** - The time an Agent spends connected to a Call, measured from
-  *answerTimestamp* to *releaseTimestamp*.
+  *answeredAt* to *releasedAt*.
 - **Wrap-up** - The work an Agent does after a Call is released and before taking
   another Call, such as entering notes. Also called after-call work (ACW) elsewhere in
   the industry.
 - **Wrap-up Time** - The time an Agent spends in Wrap-up for one Call, measured from
-  *releaseTimestamp* to *wrapUpEndTimestamp*.
+  *releasedAt* to *wrapUpEndedAt*.
 - **Handle Time** - The total Agent time a Call consumes, equal to Talk Time plus Wrap-up Time.
 - **Disposition** - The final outcome of a Call: *Completed*, *Abandoned*, or *Blocked*.
 - **Abandoned Call** - A Call the Caller releases while it is waiting in a Queue. (Note: A
@@ -167,7 +170,7 @@ Concepts:
   covers how many Agents are working, and when. See 5.3.
 - **Interval** - A fixed period, commonly 15 or 30 minutes, over which input parameters
   are held constant and metrics are reported. (Note: Each Call belongs to exactly one
-  Interval: the one containing its *arrivalTimestamp* (see 7.1).)
+  Interval: the one containing its *arrivedAt* (see 7.1).)
 
 Metrics:
 
@@ -209,7 +212,7 @@ Metrics:
 - **Object** - An Entity that is acted on but does not initiate Events: a Call or a
   Queue.
 - **Attribute** - A named property of an Entity, such as a Caller’s *patience* or a
-  Call’s *arrivalTimestamp*.
+  Call’s *arrivedAt*.
 - **State** - The value of an Entity’s *state* Attribute at a point in time. Examples
   are an Agent’s *activityState* and a Call’s *state*.
 - **Event** - A point-in-time occurrence that changes the State of one or more
@@ -219,9 +222,8 @@ Metrics:
 - **Distribution** - A probability distribution from which the simulation samples
   random values, such as a Caller’s *patience*. Distributions are specified in
   Section 6.
-- **Simulation Time** - The model’s clock: the timeline on which all timestamps, such
-  as *arrivalTimestamp*, are recorded. It is not wall-clock time. Simulation Time is
-  neither a duration nor a timestamp, so it is an exception to the naming rule in 2.4.
+- **Simulation Time** - The model’s clock: the timeline on which all points in time, such
+  as *arrivedAt*, are recorded. It is not wall-clock time.
 - **Scenario** - A complete set of Parameter values that apply to each Replication in an Ensemble.
    “Complete” means the model has no hidden defaults: everything that
   affects what the simulated contact center does is set in the Scenario. Two
@@ -250,8 +252,8 @@ Metrics:
   For example, 38 to 46 Agents in steps of 2. This is the sense used in design of
   experiments. Note: How randomness is shared across Scenarios is a design concern (see
   1.2).
-- **Event History** - The record of one Replication: every Event that occurred, its
-  timestamp, and the Entities it involved. The simulation produces it from a Scenario
+- **Event History** - The record of one Replication: every Event that occurred, the
+  Simulation Time at which it occurred, and the Entities it involved. The simulation produces it from a Scenario
   and the execution settings (8.7), and it is the simulation’s only output. Every Metric
   is computed from the Event History and the Scenario, and nothing else (Section 7).
 
@@ -300,10 +302,9 @@ classDiagram
 
 Formal definitions are below:
 
-- **Simulation Time** - The simulation’s clock. Event timestamps in the Event History
-  are taken from Simulation Time, as are Call-related timestamps (such as
-  *arrivalTimestamp*). Simulation Time is not wall-clock time. Because it is neither a
-  duration nor a timestamp, the name is an exception to the naming rule in 1.4.
+- **Simulation Time** - The simulation’s clock. The time at which each Event occurred
+  in the Event History is taken from Simulation Time, as are Call-related points in
+  time (such as *arrivedAt*). Simulation Time is not wall-clock time.
 - **Scenario** - A complete set of Parameter values that apply to each Replication in an
    Ensemble. “Complete” means the model has no hidden defaults: everything that affects
   what the simulated contact center does is set in the Scenario. Two Replications of the
@@ -331,7 +332,7 @@ Formal definitions are below:
   For example, an Experiment may vary the number of Agents between 38 to 46 in steps of
   2. Note: How randomness is shared across Scenarios is a design concern (see 1.2).
 - **Event History** - The generated output of one Replication: every Event that
-  occurred, including its timestamp and the Entities it involved. The simulation
+  occurred, including the Simulation Time at which it occurred and the Entities it involved. The simulation
   produces it from a Scenario and the execution settings (8.7). Every Metric can be
   computed from the Event History, the Scenario, and the measurement settings (8.7).
 
@@ -392,7 +393,7 @@ clock time.” The time instant that marks the occurrence of each Event is speci
 Simulation Time.
 
 Events are the basis for all Metrics. Every Event is recorded in the Event History with
-its timestamp, its Actor, its Object (if any), and any other relevant information. All
+the Simulation Time at which it occurred, its Actor, its Object (if any), and any other relevant information. All
 Metrics are defined in such a way that they can be obtained from the Event History (see
 Section 9).
 
@@ -478,14 +479,14 @@ Call.
 - *identity* - A unique identifier for the Caller. This value may be recorded in log
   messages or simulation output.
 - *patience* - How long the Caller will wait in the Queue before releasing the Call. It
-  is measured from the *arrivalTimestamp* (see 3.2.1). *patience* can be unlimited,
+  is measured from the *arrivedAt* (see 3.2.1). *patience* can be unlimited,
   meaning the Caller never abandons the Call.
 
 **Notes**
 
 - *patience* matters only for a queued Call. The Caller releases a *Queued* Call
   (Caller Released Call, *disposition* *Abandoned*) when *patience* has elapsed after the
-  *arrivalTimestamp*, unless the Call is routed first. A Call that is routed or
+  *arrivedAt*, unless the Call is routed first. A Call that is routed or
   Blocked on arrival never uses *patience*, so the model sets it only when the Call is
   queued (see 5.2). Sampling a value for every Call instead, for example to keep random
   numbers aligned across Scenarios, is a design choice (see 1.2); it does not change the
@@ -731,7 +732,7 @@ an Agent (see note 2). The Queue also defines the roster of Agents who may answe
 
 Calls are the basis for many key performance statistics, such as Average Speed of Answer
 (mean Wait Time) and Abandonment Rate. To facilitate these statistical measurements,
-every Call records relevant timestamps and a disposition, which provide the raw data.
+every Call records relevant points in time and a disposition, which provide the raw data.
 The disposition records the final outcome of the Call, which can be one of these:
 - "Blocked" - the Contact Center refused the Call (for example, the destination Queue
   was full)
@@ -761,13 +762,13 @@ Notes:
 - *queue* - The Call’s destination Queue.
 - *agent* - The Agent who answered the Call, if any.
 - *state* - The state of the Call. (See below.)
-- *arrivalTimestamp* - When the Contact Center received the Call. The model assumes
+- *arrivedAt* - When the Contact Center received the Call. The model assumes
   the Contact Center instantly processes new incoming Calls. Therefore, if the Call is
-  queued, the *arrivalTimestamp* is also when the Call entered the Queue.
-- *alertTimestamp* - When the Contact Center routed the Call to an Agent.
-- *answerTimestamp* - When the Agent answered the Call.
-- *releaseTimestamp* - When the Caller released the Call.
-- *wrapUpEndTimestamp* - When the Agent completed Wrap-up for this Call.
+  queued, the *arrivedAt* is also when the Call entered the Queue.
+- *alertedAt* - When the Contact Center routed the Call to an Agent.
+- *answeredAt* - When the Agent answered the Call.
+- *releasedAt* - When the Caller released the Call.
+- *wrapUpEndedAt* - When the Agent completed Wrap-up for this Call.
 - *disposition* - The final outcome of the Call: *Completed* / *Abandoned* / *Blocked*.
 
 **State**
@@ -787,7 +788,7 @@ The Call's *state* can assume one of the following values:
   - Rationale: This assumption allows us to define a single event to end a call, which
     follows a consistent naming convention of `actor action [direct object]`.
 - The Call’s *state* ends at *Released*, but for a *Completed* Call, its record is
-  complete only when the *wrapUpEndTimestamp* is set.
+  complete only when the *wrapUpEndedAt* is set.
 - When the Contact Center blocks a Call, it provides a treatment (*e.g.*, an
   announcement or busy tone) to the Caller, who then releases the Call. We consider the
   time between the Contact Center blocking the Call and the Caller releasing the call to
@@ -817,16 +818,16 @@ Call State Transitions:
 
 | Current State | Event | Condition(s) | Actions | Next State |
 |---|---|---|---|---|
-| — (new Call) | CC Received Call | | Set *arrivalTimestamp* / Set *queue* to the destination Queue | *Initial* |
-| *Initial* | CC Routed Call | an available Agent has joined the Call’s *queue* | Set *agent* / Set *alertTimestamp* | *Alerting* |
+| — (new Call) | CC Received Call | | Set *arrivedAt* / Set *queue* to the destination Queue | *Initial* |
+| *Initial* | CC Routed Call | an available Agent has joined the Call’s *queue* | Set *agent* / Set *alertedAt* | *Alerting* |
 | *Initial* | CC Queued Call | no available Agent; Queue is not full | Add Call to Queue’s *calls* / Set Caller’s *patience* | *Queued* |
 | *Initial* | CC Blocked Call | no available Agent; Queue is full | | *Blocked* |
-| *Queued* | CC Routed Call | | Remove Call from Queue’s *calls* / Set *agent* / Set *alertTimestamp* | *Alerting* |
-| *Queued* | Caller Released Call | | Remove Call from Queue’s *calls* / Set *releaseTimestamp* / Set *disposition* to *Abandoned* | *Released* |
-| *Alerting* | Agent Answered Call | | Set *answerTimestamp* | *Connected* |
-| *Connected* | Caller Released Call | | Set *releaseTimestamp* / Set *disposition* to *Completed* | *Released* |
-| *Blocked* | Caller Released Call | | Set *releaseTimestamp* / Set *disposition* to *Blocked* | *Released* |
-| *Released* | Agent Completed Wrap-Up | *disposition* is *Completed* | Set *wrapUpEndTimestamp* | *Released* |
+| *Queued* | CC Routed Call | | Remove Call from Queue’s *calls* / Set *agent* / Set *alertedAt* | *Alerting* |
+| *Queued* | Caller Released Call | | Remove Call from Queue’s *calls* / Set *releasedAt* / Set *disposition* to *Abandoned* | *Released* |
+| *Alerting* | Agent Answered Call | | Set *answeredAt* | *Connected* |
+| *Connected* | Caller Released Call | | Set *releasedAt* / Set *disposition* to *Completed* | *Released* |
+| *Blocked* | Caller Released Call | | Set *releasedAt* / Set *disposition* to *Blocked* | *Released* |
+| *Released* | Agent Completed Wrap-Up | *disposition* is *Completed* | Set *wrapUpEndedAt* | *Released* |
 
 **Notes**:
 
@@ -838,31 +839,31 @@ Call State Transitions:
   Event does to the Agent is in 5.1; Agent Answered Call, Caller Released Call, and
   Agent Completed Wrap-Up appear in both tables.
 - When timed Events occur is set by the sampled durations: Agent Answered Call when
-  Alert Time has elapsed after the *alertTimestamp*, Caller Released Call from
-  *Connected* when Talk Time has elapsed after the *answerTimestamp*, and Agent
-  Completed Wrap-Up when Wrap-up Time has elapsed after the *releaseTimestamp* (see
+  Alert Time has elapsed after the *alertedAt*, Caller Released Call from
+  *Connected* when Talk Time has elapsed after the *answeredAt*, and Agent
+  Completed Wrap-Up when Wrap-up Time has elapsed after the *releasedAt* (see
   3.2.2). Caller Released Call from *Queued* occurs when the Caller’s *patience* has
-  elapsed after the *arrivalTimestamp* (see 3.1.1).
+  elapsed after the *arrivedAt* (see 3.1.1).
 - The last row is a self-transition on the final state. The Call’s *state* no longer
   changes after *Released*, but its record is not complete until the Agent finishes
   Wrap-up (see 3.2.1). The diagram omits this transition.
 - *Blocked* lasts zero time: Caller Released Call follows CC Blocked Call immediately,
-  so a Blocked Call’s *releaseTimestamp* equals its *arrivalTimestamp*. A real Contact
+  so a Blocked Call’s *releasedAt* equals its *arrivedAt*. A real Contact
   Center may play an announcement before disconnecting, but that time does not matter
   here. A Blocked Call does not occupy the Queue or an Agent, and every metric counts it
-  by its *arrivalTimestamp*, so a non-zero time would change no result (see Section 8).
+  by its *arrivedAt*, so a non-zero time would change no result (see Section 8).
 - *Initial* lasts zero time, because the model assumes the Contact Center processes
-  new Calls instantly (see *arrivalTimestamp* in 3.2.1).
+  new Calls instantly (see *arrivedAt* in 3.2.1).
 - There is no *Alerting* to *Released* transition, because a Caller cannot release an
   *Alerting* Call (see 3.1.1).
 
 ##### 5.2.1.4. Measurements
 
-Every time measurement of a Call is the difference between two of its timestamps. The
+Every time measurement of a Call is the difference between two of its recorded points in time. The
 timeline below shows a Completed Call. Note that Wait Time and Alert Time overlap: the
 Caller is still waiting while the Agent is being alerted. Handle Time (Talk Time plus
 Wrap-up Time) is what AHT averages. Service Time, the queueing-theory term (see 2.2),
-also includes Alert Time, because the Agent is occupied from the *alertTimestamp*.
+also includes Alert Time, because the Agent is occupied from the *alertedAt*.
 
 ```mermaid
 ---
@@ -879,7 +880,7 @@ gantt
     axisFormat %M:%S
     tickInterval 30second
 
-    section Timestamps
+    section Points in time
     arrival             :milestone, t1, 00:00:00, 0s
     alert               :milestone, t2, 00:00:45, 0s
     answer              :milestone, t3, 00:01:00, 0s
@@ -905,7 +906,7 @@ gantt
     Service Time        :done, d2, 00:00:45, 00:05:00
 ```
 
-An Abandoned Call has only an *arrivalTimestamp* and a *releaseTimestamp*. Its Wait
+An Abandoned Call has only an *arrivedAt* and a *releasedAt*. Its Wait
 Time is the whole time it spent Queued, and it has no Alert Time, Talk Time, or Wrap-up
 Time. A Blocked Call has no measured times.
 
@@ -924,7 +925,7 @@ gantt
     axisFormat %M:%S
     tickInterval 15second
 
-    section Timestamps
+    section Points in time
     arrival             :milestone, t1, 00:00:00, 0s
     release             :milestone, t2, 00:01:10, 0s
 
@@ -975,12 +976,12 @@ Attributes that change during a Replication:
   must not rule out adding a correlation between Talk Time and Wrap-up Time later (for
   example, a correlation parameter on the Queue).
 - The Agent answers an Alerting Call (Agent Answered Call) when its sampled Alert Time
-  has elapsed after the *alertTimestamp*.
+  has elapsed after the *alertedAt*.
 - The Caller releases a Connected Call (Caller Released Call) when its sampled Talk Time
-  has elapsed after the *answerTimestamp*. Caller Released Call is the Event that ends
+  has elapsed after the *answeredAt*. Caller Released Call is the Event that ends
   the Call.
 - The Agent completes Wrap-up (Agent Completed Wrap-Up) when the sampled Wrap-up Time
-  has elapsed after the *releaseTimestamp*.
+  has elapsed after the *releasedAt*.
 
 ## 6. Policies
 
@@ -1008,7 +1009,7 @@ there is more than one waiting Call).
   longest, that is, the Agent whose most recent entry into *Ready* is earliest.
 - **Call selection: FIFO.** When an Agent becomes available and Calls are waiting, the
   Contact Center routes the Call that has waited the longest, that is, the Call with the
-  earliest *arrivalTimestamp*. An Agent becomes available by entering *Ready* while
+  earliest *arrivedAt*. An Agent becomes available by entering *Ready* while
   joined to the Queue: by Agent Joined Queue, Agent Became Ready, or Agent Completed
   Wrap-Up.
 
@@ -1027,11 +1028,11 @@ The Staffing Policy decides when each Agent works and is available. In the MVP, 
 follows the Agent schedules in the Scenario (8.5). Each Agent has one shift and may have
 breaks. The schedule produces these Agent Events:
 
-- At the *shiftStartTimestamp*: Agent Logged In, then Agent Joined Queue.
+- At the *scheduledShiftStart*: Agent Logged In, then Agent Joined Queue.
 - When a break becomes due: Agent Became Not Ready if the Agent is *Ready*; otherwise
   Agent Requested Not Ready (the break then starts when the Agent finishes Wrap-up).
 - When a break ends: Agent Became Ready.
-- At the *shiftEndTimestamp*: Shift Ended. When the Agent is released (see Shift
+- At the *scheduledShiftEnd*: Shift Ended. When the Agent is released (see Shift
   end below): Agent Left Queue for each Queue the Agent has joined, then Agent Logged
   Out as soon as the Agent is *Inactive*.
 
@@ -1058,8 +1059,8 @@ break is a flexible window, not a fixed time slot. These rules govern it:
   routed to the Agent.
 - **STF-5. A break not started by the end of the shift is not taken.**
 
-**Shift end.** Shift Ended occurs at the Agent’s *shiftEndTimestamp*, which is not
-later than the *closingTimestamp* (8.1). The Staffing Policy then *releases* the Agent:
+**Shift end.** Shift Ended occurs at the Agent’s *scheduledShiftEnd*, which is not
+later than the *scheduledClosing* (8.1). The Staffing Policy then *releases* the Agent:
 Agent Left Queue for each Queue, then Agent Logged Out once the Agent is *Inactive*.
 These rules govern when the Agent is released:
 
@@ -1072,7 +1073,7 @@ These rules govern when the Agent is released:
   Call, and then logs out. Calls may still be waiting; the Scenario is responsible for
   the staffing.
 - **STF-8. A shift that ends at closing keeps the Agent until the Queue is empty.**
-  (The *shiftEndTimestamp* equals the *closingTimestamp*.) The Agent stays joined to the
+  (The *scheduledShiftEnd* equals the *scheduledClosing*.) The Agent stays joined to the
   Queue, so the planned staffing at closing is not reduced, and a break in progress runs
   to its end, so the Agent gets the full break. The Agent is released at the first moment
   when no Calls are waiting and the Agent is not *Alerting*, *Busy*, or in Wrap-up. An
@@ -1120,17 +1121,17 @@ How a Scenario is encoded or submitted is an interface concern (1.2).
 
 | Parameter | Meaning |
 |---|---|
-| *startTimestamp* | The date and time of day of Simulation Time zero. It is also the opening time and the start of the first Interval. |
+| *scheduledOpening* | The date and time of day of Simulation Time zero. It is also the opening time and the start of the first Interval. |
 | *intervalLength* | The length of each Interval, such as 15 or 30 minutes. |
 | *intervalCount* | The number of Intervals in the open period. |
 
-The *closingTimestamp* is the *startTimestamp* plus *intervalCount* ×
+The *scheduledClosing* is the *scheduledOpening* plus *intervalCount* ×
 *intervalLength*. No Calls arrive after it. The simulation then continues through the
 drain (Section 8), so the end of a Replication is not a parameter.
 
 The *intervalLength* is a parameter, not only a reporting choice, because the arrival
 rate is constant within an Interval (6.2). Daylight-saving changes are out of scope for
-the MVP: Simulation Time maps to clock time by adding it to the *startTimestamp*.
+the MVP: Simulation Time maps to clock time by adding it to the *scheduledOpening*.
 
 ### 8.2. Demand
 
@@ -1179,9 +1180,9 @@ that vary by Interval are deferred (Section 8).
 |---|---|
 | *identity* | The Agent’s unique identifier. It also sets the order of simultaneous Agent Events (5.4). |
 | *queues* | The Queues the Agent joins at login. In the MVP, the one Queue. |
-| *shiftStartTimestamp* | When the Agent’s shift starts. |
-| *shiftEndTimestamp* | When the Agent’s shift ends. It is later than the *shiftStartTimestamp* and not later than the *closingTimestamp*. A value equal to the *closingTimestamp* means the Agent stays joined until the Queue is empty (5.3.2, Section 8). |
-| *breaks* | A list of breaks. The list may be empty. Each break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance* (zero or more; zero means the break never starts early). The *scheduledStart* and *duration* lie within the shift, breaks do not overlap, and *scheduledStart* minus *earlyStartAllowance* is not before the *shiftStartTimestamp*. The Agent may start the break later than *scheduledStart* (5.3.2). |
+| *scheduledShiftStart* | When the Agent’s shift starts. |
+| *scheduledShiftEnd* | When the Agent’s shift ends. It is later than the *scheduledShiftStart* and not later than the *scheduledClosing*. A value equal to the *scheduledClosing* means the Agent stays joined until the Queue is empty (5.3.2, Section 8). |
+| *breaks* | A list of breaks. The list may be empty. Each break has a *scheduledStart*, a *duration*, and an *earlyStartAllowance* (zero or more; zero means the break never starts early). The *scheduledStart* and *duration* lie within the shift, breaks do not overlap, and *scheduledStart* minus *earlyStartAllowance* is not before the *scheduledShiftStart*. The Agent may start the break later than *scheduledStart* (5.3.2). |
 
 The Scenario lists every Agent in the Contact Center’s *agents* (3.1.2). The Staffing
 Policy turns these values into Agent Events (5.3.2).
@@ -1279,16 +1280,16 @@ Two constraints are not visible in the diagram:
 
 A Period (9.1) belongs to measurement, not to the Scenario: choosing one changes no Replication, so it can be changed after the Replication is run (Section 3, Processing).
 
-- The window of each Scenario Interval (Section 8) is a Period. The **Day** is the open period, from *startTimestamp* to *closingTimestamp*.
+- The window of each Scenario Interval (Section 8) is a Period. The **Day** is the open period, from *scheduledOpening* to *scheduledClosing*.
 - Any other window is also a Period, such as a lunch hour or a window that extends past closing.
 - A Period carries no tiling guarantee. Periods may overlap or leave gaps. When a user's Periods do tile a larger Period, the counts add up across them, but that is a consequence of the user's choice, not a rule of the model.
 
 Two rules say what falls inside a Period:
 
-- **Calls of a Period** are the Calls whose *arrivalTimestamp* is in the Period, regardless of when they are answered, released, or wrapped up. A single anchor keeps every Call-based Metric describing the same set of Calls, and it is the only rule that covers Abandoned and Blocked Calls, which have no *answerTimestamp*. Consequence: a Measurement is not final until all the Calls of its Period have ended, which may be after the Period ends.
+- **Calls of a Period** are the Calls whose *arrivedAt* is in the Period, regardless of when they are answered, released, or wrapped up. A single anchor keeps every Call-based Metric describing the same set of Calls, and it is the only rule that covers Abandoned and Blocked Calls, which have no *answeredAt*. Consequence: a Measurement is not final until all the Calls of its Period have ended, which may be after the Period ends.
 - **Time within a Period** is the part of a span of Simulation Time that overlaps the Period. A span that crosses a Period boundary is clipped, so each Period gets only its own part.
 
-Consequence of the Day definition: work done after *closingTimestamp* (the drain, Section 11) lies outside the Day, so the Day's time-based Measurements exclude it. Calls that arrived before closing but finish during the drain still count in the Day's Call-based Measurements. A user who wants drain-time work in a time-based Measurement can define a Period that extends past closing.
+Consequence of the Day definition: work done after *scheduledClosing* (the drain, Section 11) lies outside the Day, so the Day's time-based Measurements exclude it. Calls that arrived before closing but finish during the drain still count in the Day's Call-based Measurements. A user who wants drain-time work in a time-based Measurement can define a Period that extends past closing.
 
 Periods are specified independently of Intervals, but the examples in this section use Intervals as Periods.
 
@@ -1376,7 +1377,7 @@ These Metrics use the Calls of the Period (9.2), grouped by *disposition*. Every
 
 Notes:
 
-- **Service Level.** The threshold is a measurement setting (Section 3). Wait Time runs to *answerTimestamp*, so Alert Time counts against the threshold. Abandoned Calls, including short abandons, count in the denominator and never in the numerator. This is the definition Erlang A predicts (Section 10). Blocked Calls are excluded.
+- **Service Level.** The threshold is a measurement setting (Section 3). Wait Time runs to *answeredAt*, so Alert Time counts against the threshold. Abandoned Calls, including short abandons, count in the denominator and never in the numerator. This is the definition Erlang A predicts (Section 10). Blocked Calls are excluded.
 - **Rates.** Service Level and Abandonment Rate share a denominator, and Blocked Calls appear only in Block Rate, so no Call is double-counted.
 - **ASA.** It excludes Abandoned Calls. Their Wait Time exists but belongs to no Baseline Metric. A user can define one (9.4).
 
@@ -1561,16 +1562,16 @@ run (see Section 8, Validation runs).
 Zero Alert Time and zero Wrap-up Time are needed for an exact match for two reasons.
 First, the formulas assume an exponential Service Time, and a sum of Alert Time, Talk
 Time, and Wrap-up Time is not exponential even when each part is. Second, the formulas
-measure waiting until service starts (routing, the *alertTimestamp*), while Wait Time
-runs until the *answerTimestamp*; the two agree only when Alert Time is zero.
+measure waiting until service starts (routing, the *alertedAt*), while Wait Time
+runs until the *answeredAt*; the two agree only when Alert Time is zero.
 
 - **Arrival Rate (λ)** - The average number of Calls arriving per unit of time.
 - **Poisson Arrival Process** - An arrival pattern in which Calls (a) arrive
   independently at a constant average rate and (b) the times between arrivals are
   exponentially distributed. Most analytic models assume it.
 - **Service Time (1/μ)** - The average time a server spends on one customer. In this
-  model, an Agent is occupied by a Call from *alertTimestamp* to
-  *wrapUpEndTimestamp*, so Service Time is the mean of Alert Time plus Handle Time. It
+  model, an Agent is occupied by a Call from *alertedAt* to
+  *wrapUpEndedAt*, so Service Time is the mean of Alert Time plus Handle Time. It
   equals AHT only when Alert Time is zero.
 - **Servers (N)** - The number of parallel servers. In this model, that is the number
   of Agents handling Calls.
